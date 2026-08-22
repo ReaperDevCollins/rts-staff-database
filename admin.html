@@ -42,23 +42,38 @@
 
     <nav class="navigation">
 
-        <a href="index.html" class="nav-link">
+        <a
+            href="index.html"
+            class="nav-link"
+        >
             Home
         </a>
 
-        <a href="staff.html" class="nav-link">
+        <a
+            href="staff.html"
+            class="nav-link"
+        >
             Staff List
         </a>
 
-        <a href="departments.html" class="nav-link">
+        <a
+            href="departments.html"
+            class="nav-link"
+        >
             Departments
         </a>
 
-        <a href="admin.html" class="nav-link active">
+        <a
+            href="admin.html"
+            class="nav-link active"
+        >
             Admin Panel
         </a>
 
-        <a href="editor.html" class="nav-link">
+        <a
+            href="editor.html"
+            class="nav-link"
+        >
             Editor Panel
         </a>
 
@@ -81,7 +96,7 @@
 
 
 <!-- =================================================
-     ADMIN LOGIN
+     LOGIN
 ================================================== -->
 
 <section
@@ -106,7 +121,8 @@
         </h1>
 
         <p>
-            Sign in with your administrator account.
+            Enter the administrator password
+            to continue.
         </p>
 
 
@@ -116,7 +132,7 @@
                 type="email"
                 id="adminEmail"
                 placeholder="Administrator Email"
-                autocomplete="username"
+                autocomplete="email"
                 required
             >
 
@@ -136,7 +152,15 @@
             >
                 Sign In
             </button>
-
+            
+            <button
+            type="button"
+            id="adminForgotPassword"
+            class="secondary-button"
+            style="margin-top: 10px; width: 100%;"
+        >
+            Forgot Password?
+        </button>
 
             <p
                 id="adminLoginError"
@@ -203,6 +227,7 @@
 
 <section class="management-section">
 
+
     <div class="management-header">
 
         <div>
@@ -233,10 +258,12 @@
     </div>
 
 
+
     <div
         id="rankManagementList"
         class="management-list"
     ></div>
+
 
 </section>
 
@@ -247,6 +274,7 @@
 ================================================== -->
 
 <section class="management-section">
+
 
     <div class="management-header">
 
@@ -278,10 +306,204 @@
     </div>
 
 
+
     <div
         id="statusManagementList"
         class="management-list"
     ></div>
+
+
+</section>
+
+
+
+<!-- =================================================
+     EDITOR MANAGEMENT
+================================================== -->
+
+<section class="management-section">
+
+
+    <div class="management-header">
+
+        <div>
+
+            <p class="section-label">
+                ACCESS CONTROL
+            </p>
+
+            <h2>
+                Editor Management
+            </h2>
+
+            <p>
+                Create and manage accounts that
+                are allowed to access the Editor Panel.
+            </p>
+
+        </div>
+
+
+        <button
+            class="management-add-button"
+            onclick="openEditorCreationForm()"
+        >
+            + Create Editor
+        </button>
+
+    </div>
+
+
+
+    <!-- EDITOR CREATION FORM -->
+
+    <div
+        id="editorCreationForm"
+        class="admin-form hidden"
+    >
+
+        <div class="management-header">
+
+            <div>
+
+                <p class="section-label">
+                    NEW ACCOUNT
+                </p>
+
+                <h3>
+                    Create Editor
+                </h3>
+
+                <p>
+                    Create a login account for a
+                    new RTS database editor.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <form id="createEditorForm">
+
+
+            <div class="form-group">
+
+                <label for="newEditorEmail">
+                    Email Address
+                </label>
+
+                <input
+                    type="email"
+                    id="newEditorEmail"
+                    placeholder="editor@example.com"
+                    autocomplete="off"
+                    required
+                >
+
+            </div>
+
+
+
+            <div class="form-group">
+
+                <label for="newEditorPassword">
+                    Password
+                </label>
+
+                <input
+                    type="password"
+                    id="newEditorPassword"
+                    placeholder="Enter a temporary password"
+                    autocomplete="new-password"
+                    minlength="6"
+                    required
+                >
+
+            </div>
+
+
+
+            <div class="form-group">
+
+                <label for="newEditorName">
+                    Editor Name
+                </label>
+
+                <input
+                    type="text"
+                    id="newEditorName"
+                    placeholder="Example: John Smith"
+                    autocomplete="off"
+                >
+
+            </div>
+
+
+
+            <div class="form-actions">
+
+                <button
+                    type="submit"
+                    class="management-add-button"
+                >
+                    Create Editor
+                </button>
+
+
+                <button
+                    type="button"
+                    class="management-button"
+                    onclick="closeEditorCreationForm()"
+                >
+                    Cancel
+                </button>
+
+            </div>
+
+
+            <p
+                id="createEditorMessage"
+                class="login-error"
+            ></p>
+
+
+        </form>
+
+    </div>
+
+
+
+    <!-- EDITOR SEARCH -->
+
+    <div class="management-toolbar">
+
+        <input
+            type="search"
+            id="editorManagementSearch"
+            placeholder="Search editors..."
+            autocomplete="off"
+        >
+
+    </div>
+
+
+
+    <!-- EDITOR LIST -->
+
+    <div
+        id="editorManagementList"
+        class="management-list"
+    >
+
+        <div class="management-empty">
+
+            No editors have been loaded.
+
+        </div>
+
+    </div>
+
 
 </section>
 
@@ -293,12 +515,13 @@
 
 <section class="management-section">
 
+
     <div class="management-header">
 
         <div>
 
             <p class="section-label">
-                ORGANIZATION
+                STAFF CONFIGURATION
             </p>
 
             <h2>
@@ -316,12 +539,13 @@
 
         <button
             class="management-add-button"
-            onclick="openDepartmentManagement()"
+            onclick="openDepartmentEditor()"
         >
-            Manage Departments
+            + Add Department
         </button>
 
     </div>
+
 
 
     <div
@@ -329,108 +553,6 @@
         class="management-list"
     ></div>
 
-</section>
-
-
-
-<!-- =================================================
-     EDITOR MANAGEMENT
-================================================== -->
-
-<section class="management-section">
-
-    <div class="management-header">
-
-        <div>
-
-            <p class="section-label">
-                ACCOUNT MANAGEMENT
-            </p>
-
-            <h2>
-                Editor Management
-            </h2>
-
-            <p>
-                Create accounts for staff members
-                who need access to the Editor Panel.
-            </p>
-
-        </div>
-
-    </div>
-
-
-    <form id="createEditorForm">
-
-
-        <div class="form-group">
-
-            <label for="editorUsername">
-                Editor Username
-            </label>
-
-            <input
-                type="text"
-                id="editorUsername"
-                placeholder="Roblox username"
-                autocomplete="off"
-                required
-            >
-
-        </div>
-
-
-        <div class="form-group">
-
-            <label for="editorEmail">
-                Editor Email
-            </label>
-
-            <input
-                type="email"
-                id="editorEmail"
-                placeholder="editor@example.com"
-                autocomplete="off"
-                required
-            >
-
-        </div>
-
-
-        <div class="form-group">
-
-            <label for="editorNewPassword">
-                Temporary Password
-            </label>
-
-            <input
-                type="password"
-                id="editorNewPassword"
-                placeholder="Minimum 8 characters"
-                autocomplete="new-password"
-                minlength="8"
-                required
-            >
-
-        </div>
-
-
-        <button
-            type="submit"
-            class="management-add-button"
-        >
-            Create Editor
-        </button>
-
-
-        <p
-            id="createEditorMessage"
-            class="login-error"
-        ></p>
-
-
-    </form>
 
 </section>
 
@@ -446,175 +568,22 @@
     <div class="admin-card">
 
         <h2>
-            Editor Management
+            Website Settings
         </h2>
-    
+
         <p>
-            Create and manage accounts that
-            can access the Editor Panel.
+            Manage general website
+            settings and configuration.
         </p>
-    
-        <button
-            onclick="openEditorManagement()"
-        >
-            Manage Editors
-        </button>
-    
-    </div>
-
-    <section
-    id="adminPanel"
-    class="panel-content hidden"
->
-<!-- =================================================
-     EDITOR MANAGEMENT
-================================================== -->
-
-<section class="management-section">
-
-    <div class="management-header">
-
-        <div>
-
-            <p class="section-label">
-                ACCESS CONTROL
-            </p>
-
-            <h2>
-                Editor Management
-            </h2>
-
-            <p>
-                Create and manage users who are
-                authorized to access the Editor Panel.
-            </p>
-
-        </div>
 
         <button
-            class="management-add-button"
-            onclick="openCreateEditorModal()"
+            type="button"
+            disabled
         >
-            + Add Editor
+            Coming Soon
         </button>
 
     </div>
-
-
-    <div
-        id="editorManagementList"
-        class="management-list"
-    >
-
-        <div class="management-empty">
-            Loading editors...
-        </div>
-
-    </div>
-
-</section>
-
-
-<!-- =================================================
-     CREATE EDITOR MODAL
-================================================== -->
-
-<div
-    id="createEditorModal"
-    class="modal hidden"
->
-
-    <div class="modal-content">
-
-        <div class="modal-header">
-
-            <div>
-
-                <p class="section-label">
-                    ACCESS CONTROL
-                </p>
-
-                <h2>
-                    Create Editor
-                </h2>
-
-            </div>
-
-            <button
-                type="button"
-                class="modal-close"
-                onclick="closeCreateEditorModal()"
-            >
-                ×
-            </button>
-
-        </div>
-
-
-        <form id="createEditorForm">
-
-            <div class="form-group">
-
-                <label for="newEditorEmail">
-                    Email Address
-                </label>
-
-                <input
-                    type="email"
-                    id="newEditorEmail"
-                    placeholder="editor@example.com"
-                    required
-                >
-
-            </div>
-
-
-            <div class="form-group">
-
-                <label for="newEditorPassword">
-                    Password
-                </label>
-
-                <input
-                    type="password"
-                    id="newEditorPassword"
-                    placeholder="Enter a password"
-                    minlength="6"
-                    required
-                >
-
-            </div>
-
-
-            <p
-                id="createEditorError"
-                class="login-error"
-            ></p>
-
-
-            <div class="modal-actions">
-
-                <button
-                    type="button"
-                    onclick="closeCreateEditorModal()"
-                >
-                    Cancel
-                </button>
-
-                <button
-                    type="submit"
-                    class="management-add-button"
-                >
-                    Create Editor
-                </button>
-
-            </div>
-
-        </form>
-
-    </div>
-
-</div>
 
 
 </section>
@@ -626,7 +595,166 @@
 </main>
 
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<!-- =================================================
+     DEPARTMENT EDITOR MODAL
+================================================== -->
+
+<div
+    id="departmentEditorModal"
+    class="modal hidden"
+>
+
+    <div class="modal-content">
+
+        <div class="modal-header">
+
+            <div>
+
+                <p class="section-label">
+                    DEPARTMENT
+                </p>
+
+                <h2 id="departmentEditorTitle">
+                    Add Department
+                </h2>
+
+            </div>
+
+
+            <button
+                type="button"
+                class="modal-close"
+                onclick="closeDepartmentEditor()"
+            >
+                ×
+            </button>
+
+        </div>
+
+
+        <form id="departmentForm">
+
+
+            <div class="form-group">
+
+                <label for="departmentName">
+                    Department Name
+                </label>
+
+                <input
+                    type="text"
+                    id="departmentName"
+                    required
+                >
+
+            </div>
+
+
+
+            <div class="form-group">
+
+                <label for="departmentLogo">
+                    Logo URL
+                </label>
+
+                <input
+                    type="url"
+                    id="departmentLogo"
+                    placeholder="https://example.com/logo.png"
+                >
+
+            </div>
+
+
+
+            <div
+                id="departmentLogoPreview"
+                class="department-logo-preview"
+            >
+
+                <span>
+                    No Logo
+                </span>
+
+            </div>
+
+
+
+            <div class="form-group">
+
+                <label for="departmentDescription">
+                    Description
+                </label>
+
+                <textarea
+                    id="departmentDescription"
+                    rows="4"
+                ></textarea>
+
+            </div>
+
+
+
+            <div class="form-group">
+
+                <label for="departmentHead">
+                    Department Head
+                </label>
+
+                <input
+                    type="text"
+                    id="departmentHead"
+                >
+
+            </div>
+
+
+
+            <div class="form-group">
+
+                <label for="departmentSeniorStaff">
+                    Senior Staff
+                </label>
+
+                <textarea
+                    id="departmentSeniorStaff"
+                    rows="5"
+                    placeholder="One username per line"
+                ></textarea>
+
+            </div>
+
+
+
+            <div class="form-actions">
+
+                <button
+                    type="submit"
+                    class="management-add-button"
+                >
+                    Save Department
+                </button>
+
+
+                <button
+                    type="button"
+                    class="management-button"
+                    onclick="closeDepartmentEditor()"
+                >
+                    Cancel
+                </button>
+
+            </div>
+
+
+        </form>
+
+    </div>
+
+</div>
+
+
 
 <script src="script.js"></script>
 
