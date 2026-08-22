@@ -5,11 +5,17 @@
 
     <meta charset="UTF-8">
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
     <title>Admin Panel | RTS Staff Database</title>
 
-    <link rel="stylesheet" href="style.css">
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
 
 </head>
 
@@ -75,7 +81,7 @@
 
 
 <!-- =================================================
-     LOGIN
+     ADMIN LOGIN
 ================================================== -->
 
 <section
@@ -100,18 +106,26 @@
         </h1>
 
         <p>
-            Enter the administrator password
-            to continue.
+            Sign in with your administrator account.
         </p>
 
 
         <form id="adminLoginForm">
 
             <input
+                type="email"
+                id="adminEmail"
+                placeholder="Administrator Email"
+                autocomplete="username"
+                required
+            >
+
+
+            <input
                 type="password"
                 id="adminPassword"
                 placeholder="Administrator Password"
-                autocomplete="off"
+                autocomplete="current-password"
                 required
             >
 
@@ -189,7 +203,6 @@
 
 <section class="management-section">
 
-
     <div class="management-header">
 
         <div>
@@ -220,12 +233,10 @@
     </div>
 
 
-
     <div
         id="rankManagementList"
         class="management-list"
     ></div>
-
 
 </section>
 
@@ -236,7 +247,6 @@
 ================================================== -->
 
 <section class="management-section">
-
 
     <div class="management-header">
 
@@ -268,19 +278,166 @@
     </div>
 
 
-
     <div
         id="statusManagementList"
         class="management-list"
     ></div>
-
 
 </section>
 
 
 
 <!-- =================================================
-     OTHER ADMIN OPTIONS
+     DEPARTMENT MANAGEMENT
+================================================== -->
+
+<section class="management-section">
+
+    <div class="management-header">
+
+        <div>
+
+            <p class="section-label">
+                ORGANIZATION
+            </p>
+
+            <h2>
+                Department Management
+            </h2>
+
+            <p>
+                Create and manage departments,
+                logos, descriptions, heads,
+                and senior staff.
+            </p>
+
+        </div>
+
+
+        <button
+            class="management-add-button"
+            onclick="openDepartmentManagement()"
+        >
+            Manage Departments
+        </button>
+
+    </div>
+
+
+    <div
+        id="departmentManagementList"
+        class="management-list"
+    ></div>
+
+</section>
+
+
+
+<!-- =================================================
+     EDITOR MANAGEMENT
+================================================== -->
+
+<section class="management-section">
+
+    <div class="management-header">
+
+        <div>
+
+            <p class="section-label">
+                ACCOUNT MANAGEMENT
+            </p>
+
+            <h2>
+                Editor Management
+            </h2>
+
+            <p>
+                Create accounts for staff members
+                who need access to the Editor Panel.
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <form id="createEditorForm">
+
+
+        <div class="form-group">
+
+            <label for="editorUsername">
+                Editor Username
+            </label>
+
+            <input
+                type="text"
+                id="editorUsername"
+                placeholder="Roblox username"
+                autocomplete="off"
+                required
+            >
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label for="editorEmail">
+                Editor Email
+            </label>
+
+            <input
+                type="email"
+                id="editorEmail"
+                placeholder="editor@example.com"
+                autocomplete="off"
+                required
+            >
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label for="editorNewPassword">
+                Temporary Password
+            </label>
+
+            <input
+                type="password"
+                id="editorNewPassword"
+                placeholder="Minimum 8 characters"
+                autocomplete="new-password"
+                minlength="8"
+                required
+            >
+
+        </div>
+
+
+        <button
+            type="submit"
+            class="management-add-button"
+        >
+            Create Editor
+        </button>
+
+
+        <p
+            id="createEditorMessage"
+            class="login-error"
+        ></p>
+
+
+    </form>
+
+</section>
+
+
+
+<!-- =================================================
+     WEBSITE SETTINGS
 ================================================== -->
 
 <section class="admin-grid">
@@ -289,58 +446,175 @@
     <div class="admin-card">
 
         <h2>
-            Department Management
-        </h2>
-
-        <p>
-            Create and manage departments,
-            logos, descriptions, heads,
-            and senior staff.
-        </p>
-
-        <button>
-            Coming Soon
-        </button>
-
-    </div>
-
-
-
-    <div class="admin-card">
-
-        <h2>
             Editor Management
         </h2>
-
+    
         <p>
-            Manage who has access to the
-            Editor Panel.
+            Create and manage accounts that
+            can access the Editor Panel.
         </p>
+    
+        <button
+            onclick="openEditorManagement()"
+        >
+            Manage Editors
+        </button>
+    
+    </div>
 
-        <button>
-            Coming Soon
+    <section
+    id="adminPanel"
+    class="panel-content hidden"
+>
+<!-- =================================================
+     EDITOR MANAGEMENT
+================================================== -->
+
+<section class="management-section">
+
+    <div class="management-header">
+
+        <div>
+
+            <p class="section-label">
+                ACCESS CONTROL
+            </p>
+
+            <h2>
+                Editor Management
+            </h2>
+
+            <p>
+                Create and manage users who are
+                authorized to access the Editor Panel.
+            </p>
+
+        </div>
+
+        <button
+            class="management-add-button"
+            onclick="openCreateEditorModal()"
+        >
+            + Add Editor
         </button>
 
     </div>
 
 
+    <div
+        id="editorManagementList"
+        class="management-list"
+    >
 
-    <div class="admin-card">
-
-        <h2>
-            Website Settings
-        </h2>
-
-        <p>
-            Manage general website
-            settings and configuration.
-        </p>
-
-        <button>
-            Coming Soon
-        </button>
+        <div class="management-empty">
+            Loading editors...
+        </div>
 
     </div>
+
+</section>
+
+
+<!-- =================================================
+     CREATE EDITOR MODAL
+================================================== -->
+
+<div
+    id="createEditorModal"
+    class="modal hidden"
+>
+
+    <div class="modal-content">
+
+        <div class="modal-header">
+
+            <div>
+
+                <p class="section-label">
+                    ACCESS CONTROL
+                </p>
+
+                <h2>
+                    Create Editor
+                </h2>
+
+            </div>
+
+            <button
+                type="button"
+                class="modal-close"
+                onclick="closeCreateEditorModal()"
+            >
+                ×
+            </button>
+
+        </div>
+
+
+        <form id="createEditorForm">
+
+            <div class="form-group">
+
+                <label for="newEditorEmail">
+                    Email Address
+                </label>
+
+                <input
+                    type="email"
+                    id="newEditorEmail"
+                    placeholder="editor@example.com"
+                    required
+                >
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="newEditorPassword">
+                    Password
+                </label>
+
+                <input
+                    type="password"
+                    id="newEditorPassword"
+                    placeholder="Enter a password"
+                    minlength="6"
+                    required
+                >
+
+            </div>
+
+
+            <p
+                id="createEditorError"
+                class="login-error"
+            ></p>
+
+
+            <div class="modal-actions">
+
+                <button
+                    type="button"
+                    onclick="closeCreateEditorModal()"
+                >
+                    Cancel
+                </button>
+
+                <button
+                    type="submit"
+                    class="management-add-button"
+                >
+                    Create Editor
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
 
 
 </section>
@@ -352,7 +626,10 @@
 </main>
 
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script src="script.js"></script>
+
 
 </body>
 
