@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Admin Panel | RTS Staff Database</title>
+
+    <link rel="stylesheet" href="style.css">
+
+</head>
+
+
+<body>
+
+
+<header class="topbar">
+
+    <div class="logo">
+
+        <img
+            src="rts-logo.png"
+            class="rts-logo"
+            alt="RTS Logo"
+        >
+
+        <span>
+            RTS Staff Database
+        </span>
+
+    </div>
+
+
+    <nav class="navigation">
+
+        <a href="index.html" class="nav-link">
+            Home
+        </a>
+
+        <a href="staff.html" class="nav-link">
+            Staff List
+        </a>
+
+        <a href="departments.html" class="nav-link">
+            Departments
+        </a>
+
+        <a href="admin.html" class="nav-link active">
+            Admin Panel
+        </a>
+
+        <a href="editor.html" class="nav-link">
+            Editor Panel
+        </a>
+
+    </nav>
+
+
+    <div class="database-status">
+
+        <span class="status-dot"></span>
+
+        Online
+
+    </div>
+
+</header>
+
+
+
+<main class="page">
+
+
+<!-- =================================================
+     LOGIN
+================================================== -->
+
+<section
+    id="adminLogin"
+    class="login-container"
+>
+
+    <div class="login-card">
+
+        <img
+            src="rts-logo.png"
+            class="login-logo"
+            alt="RTS Logo"
+        >
+
+        <p class="section-label">
+            RESTRICTED ACCESS
+        </p>
+
+        <h1>
+            Admin Panel
+        </h1>
+
+        <p>
+            Enter the administrator password
+            to continue.
+        </p>
+
+
+        <form id="adminLoginForm">
+
+            <input
+                type="password"
+                id="adminPassword"
+                placeholder="Administrator Password"
+                autocomplete="off"
+                required
+            >
+
+
+            <button
+                type="submit"
+                class="login-button"
+            >
+                Sign In
+            </button>
+
+
+            <p
+                id="adminLoginError"
+                class="login-error"
+            ></p>
+
+        </form>
+
+    </div>
+
+</section>
+
+
+
+<!-- =================================================
+     ADMIN PANEL
+================================================== -->
+
+<section
+    id="adminPanel"
+    class="panel-content hidden"
+>
+
+
+    <div class="page-header">
+
+        <p class="section-label">
+            RESTRICTED AREA
+        </p>
+
+        <h1>
+            Admin Panel
+        </h1>
+
+        <p>
+            Manage the RTS Staff Database.
+        </p>
+
+    </div>
+
+
+
+    <div class="panel-toolbar">
+
+        <span>
+            Administrator Access
+        </span>
+
+
+        <button
+            onclick="adminLogout()"
+            class="logout-button"
+        >
+            Log Out
+        </button>
+
+    </div>
+
+
+
+<!-- =================================================
+     RANK MANAGEMENT
+================================================== -->
+
+<section class="management-section">
+
+
+    <div class="management-header">
+
+        <div>
+
+            <p class="section-label">
+                STAFF CONFIGURATION
+            </p>
+
+            <h2>
+                Rank Management
+            </h2>
+
+            <p>
+                Add, rename, or remove ranks that
+                can be assigned to staff members.
+            </p>
+
+        </div>
+
+
+        <button
+            class="management-add-button"
+            onclick="addRank()"
+        >
+            + Add Rank
+        </button>
+
+    </div>
+
+
+
+    <div
+        id="rankManagementList"
+        class="management-list"
+    ></div>
+
+
+</section>
+
+
+
+<!-- =================================================
+     STATUS MANAGEMENT
+================================================== -->
+
+<section class="management-section">
+
+
+    <div class="management-header">
+
+        <div>
+
+            <p class="section-label">
+                STAFF CONFIGURATION
+            </p>
+
+            <h2>
+                Status Management
+            </h2>
+
+            <p>
+                Add, rename, or remove statuses
+                that can be assigned to staff.
+            </p>
+
+        </div>
+
+
+        <button
+            class="management-add-button"
+            onclick="addStatus()"
+        >
+            + Add Status
+        </button>
+
+    </div>
+
+
+
+    <div
+        id="statusManagementList"
+        class="management-list"
+    ></div>
+
+
+</section>
+
+
+
+<!-- =================================================
+     OTHER ADMIN OPTIONS
+================================================== -->
+
+<section class="admin-grid">
+
+
+    <div class="admin-card">
+
+        <h2>
+            Department Management
+        </h2>
+
+        <p>
+            Create and manage departments,
+            logos, descriptions, heads,
+            and senior staff.
+        </p>
+
+        <button>
+            Coming Soon
+        </button>
+
+    </div>
+
+
+
+    <div class="admin-card">
+
+        <h2>
+            Editor Management
+        </h2>
+
+        <p>
+            Manage who has access to the
+            Editor Panel.
+        </p>
+
+        <button>
+            Coming Soon
+        </button>
+
+    </div>
+
+
+
+    <div class="admin-card">
+
+        <h2>
+            Website Settings
+        </h2>
+
+        <p>
+            Manage general website
+            settings and configuration.
+        </p>
+
+        <button>
+            Coming Soon
+        </button>
+
+    </div>
+
+
+</section>
+
+
+</section>
+
+
+</main>
+
+
+<script src="script.js"></script>
+
+</body>
+
+</html>

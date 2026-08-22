@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Staff List | RTS Staff Database</title>
+
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+
+</head>
+
+
+<body>
+
+
+<!-- =========================
+     TOP NAVIGATION
+========================= -->
+
+<header class="topbar">
+
+    <div class="logo">
+
+        <img
+            src="rts-logo.png"
+            class="rts-logo"
+            alt="RTS Logo"
+        >
+
+        <span>
+            RTS Staff Database
+        </span>
+
+    </div>
+
+
+    <nav class="navigation">
+
+        <a
+            href="index.html"
+            class="nav-link"
+        >
+            Home
+        </a>
+
+
+        <a
+            href="staff.html"
+            class="nav-link active"
+        >
+            Staff List
+        </a>
+
+
+        <a
+            href="departments.html"
+            class="nav-link"
+        >
+            Departments
+        </a>
+
+
+        <a
+            href="admin.html"
+            class="nav-link"
+        >
+            Admin Panel
+        </a>
+
+
+        <a
+            href="editor.html"
+            class="nav-link"
+        >
+            Editor Panel
+        </a>
+
+    </nav>
+
+
+    <div class="database-status">
+
+        <span class="status-dot"></span>
+
+        Online
+
+    </div>
+
+</header>
+
+
+
+<!-- =========================
+     MAIN
+========================= -->
+
+<main class="page">
+
+
+    <!-- =========================
+         PAGE HEADER
+    ========================== -->
+
+    <section class="page-header">
+
+        <p class="section-label">
+            ROBLOX TALENT SHOW
+        </p>
+
+        <h1>
+            Staff List
+        </h1>
+
+        <p>
+            View current and former Roblox Talent
+            Show personnel.
+        </p>
+
+    </section>
+
+
+
+    <!-- =========================
+         STATISTICS
+    ========================== -->
+
+    <section class="statistics-grid">
+
+
+        <!-- TOTAL -->
+
+        <div class="stat-card">
+
+            <div class="stat-icon">
+                👥
+            </div>
+
+            <div>
+
+                <p class="stat-label">
+                    TOTAL PERSONNEL
+                </p>
+
+                <h2 id="totalPersonnel">
+                    0
+                </h2>
+
+                <p class="stat-description">
+                    Current & Former
+                </p>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- ACTIVE -->
+
+        <div class="stat-card">
+
+            <div class="stat-icon">
+                ✓
+            </div>
+
+            <div>
+
+                <p class="stat-label">
+                    ACTIVE PERSONNEL
+                </p>
+
+                <h2 id="activePersonnel">
+                    0
+                </h2>
+
+                <p class="stat-description">
+                    Currently serving
+                </p>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- TERMINATIONS -->
+
+        <div class="stat-card">
+
+            <div class="stat-icon">
+                !
+            </div>
+
+            <div>
+
+                <p class="stat-label">
+                    TERMINATIONS
+                </p>
+
+                <h2 id="terminationCount">
+                    0
+                </h2>
+
+                <p class="stat-description">
+                    Staff terminated
+                </p>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- RESIGNATIONS -->
+
+        <div class="stat-card">
+
+            <div class="stat-icon">
+                →
+            </div>
+
+            <div>
+
+                <p class="stat-label">
+                    RESIGNATIONS
+                </p>
+
+                <h2 id="resignationCount">
+                    0
+                </h2>
+
+                <p class="stat-description">
+                    Staff resigned
+                </p>
+
+            </div>
+
+        </div>
+
+
+    </section>
+
+
+
+    <!-- =========================
+         FILTERS
+    ========================== -->
+
+    <section class="filters">
+
+
+        <!-- SEARCH -->
+
+        <input
+            type="text"
+            id="staffSearch"
+            placeholder="Search Roblox username..."
+        >
+
+
+        <!-- STATUS -->
+
+        <select id="statusFilter">
+
+            <option value="all">
+                All Statuses
+            </option>
+
+        </select>
+
+
+        <!-- RANK -->
+
+        <select id="rankFilter">
+
+            <option value="all">
+                All Ranks
+            </option>
+
+        </select>
+
+
+        <!-- DEPARTMENT -->
+
+        <select id="departmentFilter">
+
+            <option value="all">
+                All Departments
+            </option>
+
+        </select>
+
+
+    </section>
+
+
+
+    <!-- =========================
+         STAFF TABLE
+    ========================== -->
+
+    <section class="staff-table-container">
+
+
+        <div class="staff-table-header">
+
+            <div>
+                Roblox Username
+            </div>
+
+            <div>
+                Rank
+            </div>
+
+            <div>
+                Status
+            </div>
+
+            <div>
+                Department
+            </div>
+
+            <div>
+                Start Date
+            </div>
+
+            <div>
+                End Date
+            </div>
+
+            <div>
+                Service
+            </div>
+
+        </div>
+
+
+
+        <!-- STAFF WILL BE INSERTED HERE -->
+
+        <div
+            id="staffList"
+            class="staff-table-body"
+        ></div>
+
+
+    </section>
+
+
+</main>
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="script.js"></script>
+
+
+</body>
+
+</html>

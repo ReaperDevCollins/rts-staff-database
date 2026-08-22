@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Department | RTS Staff Database</title>
+
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+
+</head>
+
+
+<body>
+
+
+<header class="topbar">
+
+
+    <div class="logo">
+
+        <img
+            src="rts-logo.png"
+            class="rts-logo"
+            alt="RTS Logo"
+        >
+
+        <span>
+            RTS Staff Database
+        </span>
+
+    </div>
+
+
+    <nav class="navigation">
+
+        <a
+            href="index.html"
+            class="nav-link"
+        >
+            Home
+        </a>
+
+
+        <a
+            href="staff.html"
+            class="nav-link"
+        >
+            Staff List
+        </a>
+
+
+        <a
+            href="departments.html"
+            class="nav-link active"
+        >
+            Departments
+        </a>
+
+
+        <a
+            href="admin.html"
+            class="nav-link"
+        >
+            Admin Panel
+        </a>
+
+
+        <a
+            href="editor.html"
+            class="nav-link"
+        >
+            Editor Panel
+        </a>
+
+    </nav>
+
+
+    <div class="database-status">
+
+        <span class="status-dot"></span>
+
+        Online
+
+    </div>
+
+
+</header>
+
+
+
+<main class="page">
+
+
+    <!-- DEPARTMENT HEADER -->
+
+    <section
+        class="department-profile"
+        id="departmentProfile"
+    >
+
+        <div
+            class="large-department-logo"
+            id="departmentProfileLogo"
+        >
+            ?
+        </div>
+
+
+        <div>
+
+            <p class="section-label">
+                DEPARTMENT
+            </p>
+
+            <h1 id="departmentProfileName">
+                Loading department information...
+            </h1>
+
+            <p id="departmentProfileDescription">
+                Please wait while the department information is loaded.
+            </p>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- HEAD -->
+
+    <section class="profile-section">
+
+        <p class="section-label">
+            DEPARTMENT LEADERSHIP
+        </p>
+
+        <h2>
+            Current Head
+        </h2>
+
+
+        <div
+            class="head-card"
+            id="departmentHeadContainer"
+        >
+
+            <div class="profile-avatar">
+                ?
+            </div>
+
+
+            <div>
+
+                <h3>
+                    Loading...
+                </h3>
+
+                <p>
+                    Loading department head...
+                </p>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- SENIOR STAFF -->
+
+    <section class="profile-section">
+
+        <p class="section-label">
+            DEPARTMENT STAFF
+        </p>
+
+        <h2>
+            Senior Staff
+        </h2>
+
+
+        <div
+            class="senior-staff-grid"
+            id="departmentSeniorStaff"
+        >
+
+            <div class="staff-empty">
+
+                <h3>
+                    Loading...
+                </h3>
+
+                <p>
+                    Loading senior staff...
+                </p>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+</main>
+
+
+
+<!--
+    SUPABASE MUST LOAD BEFORE script.js
+-->
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script src="script.js"></script>
+
+
+</body>
+
+</html>

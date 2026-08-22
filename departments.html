@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Departments | RTS Staff Database</title>
+
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+
+</head>
+
+
+<body>
+
+
+<header class="topbar">
+
+
+    <div class="logo">
+
+        <img
+            src="rts-logo.png"
+            class="rts-logo"
+            alt="RTS Logo"
+        >
+
+        <span>
+            RTS Staff Database
+        </span>
+
+    </div>
+
+
+    <nav class="navigation">
+
+        <a
+            href="index.html"
+            class="nav-link"
+        >
+            Home
+        </a>
+
+
+        <a
+            href="staff.html"
+            class="nav-link"
+        >
+            Staff List
+        </a>
+
+
+        <a
+            href="departments.html"
+            class="nav-link active"
+        >
+            Departments
+        </a>
+
+
+        <a
+            href="admin.html"
+            class="nav-link"
+        >
+            Admin Panel
+        </a>
+
+
+        <a
+            href="editor.html"
+            class="nav-link"
+        >
+            Editor Panel
+        </a>
+
+    </nav>
+
+
+    <div class="database-status">
+
+        <span class="status-dot"></span>
+
+        Online
+
+    </div>
+
+
+</header>
+
+
+
+<main class="page">
+
+
+    <!-- PAGE HEADER -->
+
+    <section class="page-header">
+
+        <p class="section-label">
+            ORGANIZATION
+        </p>
+
+        <h1>
+            Departments
+        </h1>
+
+        <p>
+            View the departments that make up the
+            Roblox Talent Show staff organization.
+        </p>
+
+    </section>
+
+
+
+    <!-- DEPARTMENT LIST -->
+
+    <section class="profile-section">
+
+        <div
+            id="departmentPageList"
+            class="department-grid"
+        >
+
+            <div class="staff-empty">
+
+                <h3>
+                    Loading Departments...
+                </h3>
+
+                <p>
+                    Please wait while department information is loaded.
+                </p>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+</main>
+
+
+
+<!--
+    IMPORTANT:
+    Supabase MUST load before script.js.
+-->
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script src="script.js"></script>
+
+
+</body>
+
+</html>
