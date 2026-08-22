@@ -18,15 +18,52 @@ const SUPABASE_PUBLISHABLE_KEY =
         SUPABASE_URL,
         SUPABASE_PUBLISHABLE_KEY
     );
-
-
 /* =====================================================
-   AUTHORIZED EDITOR
+   CHECK EDITOR AUTHORIZATION
 ===================================================== */
 
-const AUTHORIZED_EDITOR_ID =
-    "6ef6fb66-72cf-4739-8ca5-c6ac24f968e1";
+async function isAuthorizedEditor(userId) {
 
+    if (!userId) {
+        return false;
+    }
+
+    try {
+
+        const {
+            data,
+            error
+        } = await supabaseClient
+            .from("editors")
+            .select("id")
+            .eq("id", userId)
+            .maybeSingle();
+
+        if (error) {
+
+            console.error(
+                "Editor authorization error:",
+                error
+            );
+
+            return false;
+        }
+
+        return !!data;
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Unexpected editor authorization error:",
+            error
+        );
+
+        return false;
+    }
+
+}
 
 /* =====================================================
    DEFAULT OPTIONS
@@ -1011,21 +1048,21 @@ function setupEditorLogin() {
                 }
 
 
-                if (
-                    data.user.id !==
-                    AUTHORIZED_EDITOR_ID
-                ) {
-
-                    await supabaseClient.auth.signOut();
-
-                    if (error) {
-                        error.textContent =
-                            "You are not authorized to access the editor.";
-                    }
-
-                    return;
-
+                const authorized =
+                await isAuthorizedEditor(data.user.id);
+            
+            if (!authorized) {
+            
+                await supabaseClient.auth.signOut();
+            
+                if (error) {
+                    error.textContent =
+                        "You are not authorized to access the editor.";
                 }
+            
+                return;
+            
+            }
 
 
                 sessionStorage.setItem(
@@ -1189,18 +1226,20 @@ async function checkEditorSession() {
         }
 
 
-        if (
-            session.user.id !==
-            AUTHORIZED_EDITOR_ID
-        ) {
-
-            await supabaseClient.auth.signOut();
-
-            showEditorLogin();
-
-            return;
-
-        }
+        const authorized =
+        await isAuthorizedEditor(
+            session.user.id
+        );
+    
+    if (!authorized) {
+    
+        await supabaseClient.auth.signOut();
+    
+        showEditorLogin();
+    
+        return;
+    
+    }
 
 
         await showEditorPanel();
@@ -4174,7 +4213,586 @@ function setupEventListeners() {
     }
 
 }
+/* =====================================================
+   EDITOR MANAGEMENT
+===================================================== */
 
+async function loadEditorManagement() {
+
+    const container =
+        document.getElementById(
+            "editorManagementList"
+        );
+
+    if (!container) {
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="management-empty">
+            Loading editors...
+        </div>
+    `;
+
+    try {
+
+        const {
+            data: {
+                user
+            }
+        } =
+            await supabaseClient.auth.getUser();
+
+        if (!user) {
+            container.innerHTML = `
+                <div class="management-empty">
+                    You must be signed in as an administrator.
+                </div>
+            `;
+            return;
+        }
+
+        const {
+            data,
+            error
+        } =
+            await supabaseClient
+                .from("editors")
+                .select("id, email, created_at")
+                .order(
+                    "created_at",
+                    {
+                        ascending: true
+                    }
+                );
+
+        if (error) {
+            console.error(
+                "Unable to load editors:",
+                error
+            );
+
+            container.innerHTML = `
+                <div class="management-empty">
+                    Unable to load editors.
+                </div>
+            `;
+
+            return;
+        }
+
+        container.innerHTML = "";
+
+        if (!data || data.length === 0) {
+
+            container.innerHTML = `
+                <div class="management-empty">
+                    No editors have been created yet.
+                </div>
+            `;
+
+            return;
+        }
+
+        data.forEach(editor => {
+
+            const item =
+                document.createElement("div");
+
+            item.className =
+                "management-item";
+
+            const date =
+                editor.created_at
+                    ? new Date(
+                        editor.created_at
+                    ).toLocaleDateString(
+                        "en-US",
+                        {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric"
+                        }
+                    )
+                    : "Unknown";
+
+            item.innerHTML = `
+
+                <div>
+
+                    <span class="management-name">
+                        ${escapeHTML(editor.email)}
+                    </span>
+
+                    <small>
+                        Created ${escapeHTML(date)}
+                    </small>
+
+                </div>
+
+                <div class="management-actions">
+
+                    <button
+                        class="management-button delete"
+                        onclick="removeEditor('${editor.id}', '${escapeHTML(editor.email)}')"
+                    >
+                        Remove
+                    </button>
+
+                </div>
+
+            `;
+
+            container.appendChild(item);
+
+        });
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Unexpected editor loading error:",
+            error
+        );
+
+        container.innerHTML = `
+            <div class="management-empty">
+                An unexpected error occurred.
+            </div>
+        `;
+
+    }
+
+}
+
+
+/* =====================================================
+   OPEN CREATE EDITOR MODAL
+===================================================== */
+
+function openCreateEditorModal() {
+
+    const modal =
+        document.getElementById(
+            "createEditorModal"
+        );
+
+    const form =
+        document.getElementById(
+            "createEditorForm"
+        );
+
+    const error =
+        document.getElementById(
+            "createEditorError"
+        );
+
+    if (!modal) {
+        return;
+    }
+
+    if (form) {
+        form.reset();
+    }
+
+    if (error) {
+        error.textContent = "";
+    }
+
+    modal.classList.remove("hidden");
+
+}
+
+
+/* =====================================================
+   CLOSE CREATE EDITOR MODAL
+===================================================== */
+
+function closeCreateEditorModal() {
+
+    const modal =
+        document.getElementById(
+            "createEditorModal"
+        );
+
+    if (!modal) {
+        return;
+    }
+
+    modal.classList.add("hidden");
+
+}
+
+
+/* =====================================================
+   CREATE EDITOR
+===================================================== */
+
+async function createEditorAccount(
+    email,
+    password
+) {
+
+    const {
+        data: {
+            session
+        }
+    } =
+        await supabaseClient.auth.getSession();
+
+    if (!session) {
+
+        throw new Error(
+            "You are not currently signed in."
+        );
+
+    }
+
+
+    const response =
+        await fetch(
+            `${SUPABASE_URL}/functions/v1/create-editor`,
+            {
+
+                method: "POST",
+
+                headers: {
+
+                    "Content-Type":
+                        "application/json",
+
+                    "Authorization":
+                        `Bearer ${session.access_token}`
+
+                },
+
+                body: JSON.stringify({
+
+                    email:
+                        email,
+
+                    password:
+                        password
+
+                })
+
+            }
+        );
+
+
+    let result = {};
+
+    try {
+        result =
+            await response.json();
+    }
+
+    catch {
+        result = {};
+    }
+
+
+    if (!response.ok) {
+
+        throw new Error(
+            result.error ||
+            result.message ||
+            "Unable to create editor."
+        );
+
+    }
+
+
+    return result;
+
+}
+
+
+/* =====================================================
+   CREATE EDITOR FORM
+===================================================== */
+
+function setupCreateEditorForm() {
+
+    const form =
+        document.getElementById(
+            "createEditorForm"
+        );
+
+    if (!form) {
+        return;
+    }
+
+
+    form.addEventListener(
+        "submit",
+        async function(event) {
+
+            event.preventDefault();
+
+
+            const email =
+                document.getElementById(
+                    "newEditorEmail"
+                )?.value
+                ?.trim();
+
+
+            const password =
+                document.getElementById(
+                    "newEditorPassword"
+                )?.value;
+
+
+            const error =
+                document.getElementById(
+                    "createEditorError"
+                );
+
+
+            const button =
+                form.querySelector(
+                    "button[type='submit']"
+                );
+
+
+            if (error) {
+                error.textContent = "";
+            }
+
+
+            if (!email || !password) {
+
+                if (error) {
+                    error.textContent =
+                        "Please enter an email and password.";
+                }
+
+                return;
+
+            }
+
+
+            if (password.length < 6) {
+
+                if (error) {
+                    error.textContent =
+                        "Password must be at least 6 characters.";
+                }
+
+                return;
+
+            }
+
+
+            if (button) {
+
+                button.disabled = true;
+
+                button.textContent =
+                    "Creating...";
+
+            }
+
+
+            try {
+
+                await createEditorAccount(
+                    email,
+                    password
+                );
+
+
+                closeCreateEditorModal();
+
+                await loadEditorManagement();
+
+
+                alert(
+                    `Editor account created successfully for ${email}.`
+                );
+
+            }
+
+            catch (error) {
+
+                console.error(
+                    "Create editor error:",
+                    error
+                );
+
+                if (error) {
+
+                    document.getElementById(
+                        "createEditorError"
+                    ).textContent =
+                        error.message ||
+                        "Unable to create editor.";
+
+                }
+
+            }
+
+            finally {
+
+                if (button) {
+
+                    button.disabled = false;
+
+                    button.textContent =
+                        "Create Editor";
+
+                }
+
+            }
+
+        }
+    );
+
+}
+
+
+/* =====================================================
+   REMOVE EDITOR
+===================================================== */
+
+async function removeEditor(
+    editorId,
+    email
+) {
+
+    const confirmed =
+        confirm(
+            `Are you sure you want to remove ${email} from the Editor Panel?`
+        );
+
+
+    if (!confirmed) {
+        return;
+    }
+
+
+    try {
+
+        const {
+            data: {
+                session
+            }
+        } =
+            await supabaseClient.auth.getSession();
+
+
+        if (!session) {
+
+            alert(
+                "You must be signed in."
+            );
+
+            return;
+
+        }
+
+
+        const response =
+            await fetch(
+                `${SUPABASE_URL}/functions/v1/create-editor`,
+                {
+
+                    method: "DELETE",
+
+                    headers: {
+
+                        "Content-Type":
+                            "application/json",
+
+                        "Authorization":
+                            `Bearer ${session.access_token}`
+
+                    },
+
+                    body: JSON.stringify({
+
+                        userId:
+                            editorId
+
+                    })
+
+                }
+            );
+
+
+        const result =
+            await response.json();
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                result.error ||
+                "Unable to remove editor."
+            );
+
+        }
+
+
+        await loadEditorManagement();
+
+
+        alert(
+            `${email} has been removed from the Editor Panel.`
+        );
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Remove editor error:",
+            error
+        );
+
+        alert(
+            error.message ||
+            "Unable to remove editor."
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   OPEN EDITOR MANAGEMENT
+===================================================== */
+
+function openEditorManagement() {
+
+    const element =
+        document.getElementById(
+            "editorManagementList"
+        );
+
+    if (!element) {
+
+        alert(
+            "Editor management could not be found."
+        );
+
+        return;
+
+    }
+
+
+    element.scrollIntoView({
+        behavior: "smooth",
+        block: "center"
+    });
+
+
+    loadEditorManagement();
+
+}
 
 /* =====================================================
    INITIALIZE WEBSITE
@@ -4240,6 +4858,7 @@ document.addEventListener(
         ============================================== */
 
         checkAdminSession();
+        loadEditorManagement();
 
 
         /* =============================================
@@ -4254,3 +4873,6 @@ document.addEventListener(
 
     }
 );
+
+setupEventListeners();
+setupCreateEditorForm();
