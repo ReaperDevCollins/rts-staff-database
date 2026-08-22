@@ -2196,3 +2196,21 @@ footer {
     }
 
 }
+
+/* =====================================================
+   STAFF DEPARTMENT LOGO
+===================================================== */
+
+.staff-department-cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.staff-department-logo {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    border-radius: 6px;
+    flex-shrink: 0;
+}
