@@ -18,6 +18,22 @@ const SUPABASE_PUBLISHABLE_KEY =
         SUPABASE_URL,
         SUPABASE_PUBLISHABLE_KEY
     );
+    const ADMIN_EMAIL = "devmccollins@gmail.com";
+
+const RESET_PASSWORD_URL =
+    "https://reaperdevcollins.github.io/rts-staff-database/reset-password.html";
+
+async function sendPasswordReset(email) {
+
+    const { error } =
+        await supabaseClient.auth.resetPasswordForEmail(
+            email,
+            { redirectTo: RESET_PASSWORD_URL }
+        );
+
+    return error;
+
+}
 /* =====================================================
    CHECK EDITOR AUTHORIZATION
 ===================================================== */
@@ -801,13 +817,13 @@ function displayStaff() {
 
                 </div>
 
-                <div class="staff-department-cell">
+               <div class="staff-department-cell">
 
-                    ${escapeHTML(
-                        staff.department
-                    )}
+    ${escapeHTML(
+        staff.department
+    )}
 
-                </div>
+</div>
 
                 <div class="staff-date">
 
@@ -3180,7 +3196,6 @@ function displayHomepageDepartments() {
 
 
     departmentDatabase
-        .slice(0, 4)
         .forEach(
             department => {
 
@@ -4078,7 +4093,448 @@ function removeStatus(index) {
 
 }
 
+/* =====================================================
+   EDITOR MANAGEMENT
+===================================================== */
 
+async function createEditorAccount(event) {
+
+    event.preventDefault();
+
+    const email =
+        document.getElementById(
+            "newEditorEmail"
+        )?.value
+        ?.trim();
+
+    const password =
+        document.getElementById(
+            "newEditorPassword"
+        )?.value;
+
+    const name =
+        document.getElementById(
+            "newEditorName"
+        )?.value
+        ?.trim();
+
+    const message =
+        document.getElementById(
+            "createEditorMessage"
+        );
+
+    const button =
+        document.querySelector(
+            "#createEditorForm button[type='submit']"
+        );
+
+
+    if (message) {
+        message.textContent = "";
+    }
+
+
+    if (!email || !password) {
+
+        if (message) {
+            message.textContent =
+                "Please enter an email and password.";
+        }
+
+        return;
+
+    }
+
+
+    if (password.length < 6) {
+
+        if (message) {
+            message.textContent =
+                "Password must be at least 6 characters.";
+        }
+
+        return;
+
+    }
+
+
+    if (button) {
+
+        button.disabled = true;
+
+        button.textContent =
+            "Creating...";
+
+    }
+
+
+    try {
+
+        const {
+            data,
+            error
+        } =
+            await supabaseClient.functions.invoke(
+                "create-editor",
+                {
+                    body: {
+                        email:
+                            email,
+
+                        password:
+                            password,
+
+                        name:
+                            name || null
+                    }
+                }
+            );
+
+
+        if (error) {
+
+            console.error(
+                "Create editor error:",
+                error
+            );
+
+            if (message) {
+                message.textContent =
+                    error.message ||
+                    "Unable to create editor.";
+            }
+
+            return;
+
+        }
+
+
+        if (
+            data &&
+            data.error
+        ) {
+
+            if (message) {
+                message.textContent =
+                    data.error;
+            }
+
+            return;
+
+        }
+
+
+        if (message) {
+
+            message.textContent =
+                "Editor account created successfully.";
+
+        }
+
+
+        document
+            .getElementById(
+                "createEditorForm"
+            )
+            ?.reset();
+
+
+        await loadEditorAccounts();
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Unexpected editor creation error:",
+            error
+        );
+
+        if (message) {
+
+            message.textContent =
+                "An unexpected error occurred.";
+
+        }
+
+    }
+
+    finally {
+
+        if (button) {
+
+            button.disabled = false;
+
+            button.textContent =
+                "Create Editor";
+
+        }
+
+    }
+
+}
+
+
+/* =====================================================
+   LOAD EDITOR ACCOUNTS
+===================================================== */
+
+async function loadEditorAccounts() {
+
+    const container =
+        document.getElementById(
+            "editorManagementList"
+        );
+
+
+    if (!container) {
+        return;
+    }
+
+
+    container.innerHTML = `
+
+        <div class="management-empty">
+
+            Loading editors...
+
+        </div>
+
+    `;
+
+
+    try {
+
+        const {
+            data,
+            error
+        } =
+            await supabaseClient
+                .from("editors")
+                .select("*")
+                .order(
+                    "created_at",
+                    {
+                        ascending: true
+                    }
+                );
+
+
+        if (error) {
+
+            console.error(
+                "Editor loading error:",
+                error
+            );
+
+
+            container.innerHTML = `
+
+                <div class="management-empty">
+
+                    Unable to load editors.
+
+                </div>
+
+            `;
+
+            return;
+
+        }
+
+
+        container.innerHTML = "";
+
+
+        if (
+            !data ||
+            data.length === 0
+        ) {
+
+            container.innerHTML = `
+
+                <div class="management-empty">
+
+                    No editors have been created.
+
+                </div>
+
+            `;
+
+            return;
+
+        }
+
+
+        data.forEach(
+            editor => {
+
+                const item =
+                    document.createElement(
+                        "div"
+                    );
+
+
+                item.className =
+                    "management-item";
+
+
+                item.innerHTML = `
+
+                    <div>
+
+                        <span class="management-name">
+
+                            ${escapeHTML(
+                                editor.name ||
+                                editor.email ||
+                                "Unnamed Editor"
+                            )}
+
+                        </span>
+
+
+                        <small>
+
+                            ${escapeHTML(
+                                editor.email ||
+                                ""
+                            )}
+
+                        </small>
+
+                    </div>
+
+
+                    <div class="management-actions">
+
+                        <button
+                            class="management-button delete"
+                            onclick="deleteEditor('${editor.id}')"
+                        >
+                            Remove
+                        </button>
+
+                    </div>
+
+                `;
+
+
+                container.appendChild(
+                    item
+                );
+
+            }
+        );
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Unexpected editor loading error:",
+            error
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   DELETE EDITOR
+===================================================== */
+
+async function deleteEditor(userId) {
+
+    if (!userId) {
+        return;
+    }
+
+
+    const confirmed =
+        confirm(
+            "Are you sure you want to remove this editor? They will no longer be able to access the Editor Panel."
+        );
+
+
+    if (!confirmed) {
+        return;
+    }
+
+
+    try {
+
+        const {
+            data,
+            error
+        } =
+            await supabaseClient.functions.invoke(
+                "create-editor",
+                {
+                    method: "DELETE",
+
+                    body: {
+                        userId:
+                            userId
+                    }
+                }
+            );
+
+
+        if (error) {
+
+            console.error(
+                "Delete editor error:",
+                error
+            );
+
+            alert(
+                error.message ||
+                "Unable to remove editor."
+            );
+
+            return;
+
+        }
+
+
+        if (
+            data &&
+            data.error
+        ) {
+
+            alert(
+                data.error
+            );
+
+            return;
+
+        }
+
+
+        alert(
+            "Editor removed successfully."
+        );
+
+
+        await loadEditorAccounts();
+
+    }
+
+    catch (error) {
+
+        console.error(
+            error
+        );
+
+        alert(
+            "An unexpected error occurred while removing the editor."
+        );
+
+    }
+
+}
 /* =====================================================
    ADMIN SESSION
 ===================================================== */
@@ -4104,36 +4560,324 @@ function showAdminPanel() {
     login.classList.add("hidden");
 
     panel.classList.remove("hidden");
+    loadEditorAccounts();
+}
+
+
+/* =====================================================
+   ADMIN LOGIN
+===================================================== */
+
+function setupAdminLogin() {
+
+    const adminLoginForm =
+        document.getElementById(
+            "adminLoginForm"
+        );
+
+
+    if (!adminLoginForm) {
+        return;
+    }
+
+
+    adminLoginForm.addEventListener(
+        "submit",
+        async function (event) {
+
+            event.preventDefault();
+
+
+            const password =
+                document.getElementById(
+                    "adminPassword"
+                )?.value;
+
+
+            const error =
+                document.getElementById(
+                    "adminLoginError"
+                );
+
+
+            if (error) {
+                error.textContent = "";
+            }
+
+
+            if (!password) {
+
+                if (error) {
+                    error.textContent =
+                        "Please enter your administrator password.";
+                }
+
+                return;
+
+            }
+
+
+            const button =
+                adminLoginForm.querySelector(
+                    "button[type='submit']"
+                );
+
+
+            if (button) {
+
+                button.disabled = true;
+
+                button.textContent =
+                    "Signing In...";
+
+            }
+
+
+            try {
+
+                /*
+                 * The administrator email is
+                 * the email configured in the
+                 * create-editor Edge Function.
+                 */
+
+                const ADMIN_EMAIL =
+                    "devmccollins@gmail.com";
+
+
+                const {
+                    data,
+                    error: loginError
+                } =
+                    await supabaseClient.auth
+                        .signInWithPassword({
+
+                            email:
+                                ADMIN_EMAIL,
+
+                            password:
+                                password
+
+                        });
+
+
+                if (loginError) {
+
+                    if (error) {
+                        error.textContent =
+                            loginError.message ||
+                            "Incorrect administrator password.";
+                    }
+
+                    return;
+
+                }
+
+
+                if (!data?.session) {
+
+                    if (error) {
+                        error.textContent =
+                            "Login failed. No authentication session was created.";
+                    }
+
+                    return;
+
+                }
+
+
+                showAdminPanel();
+
+            }
+
+            catch (loginException) {
+
+                console.error(
+                    "Admin login error:",
+                    loginException
+                );
+
+
+                if (error) {
+
+                    error.textContent =
+                        "Unable to connect to Supabase.";
+
+                }
+
+            }
+
+            finally {
+
+                if (button) {
+
+                    button.disabled = false;
+
+                    button.textContent =
+                        "Sign In";
+
+                }
+
+            }
+
+        }
+    );
 
 }
 
 
-function adminLogout() {
+/* =====================================================
+   ADMIN LOGOUT
+===================================================== */
 
-    sessionStorage.removeItem(
-        "rtsAdminLoggedIn"
-    );
+async function adminLogout() {
+
+    try {
+
+        await supabaseClient.auth.signOut();
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Admin logout error:",
+            error
+        );
+
+    }
+
 
     location.reload();
 
 }
 
 
-function checkAdminSession() {
+/* =====================================================
+   CHECK ADMIN SESSION
+===================================================== */
 
-    const loggedIn =
-        sessionStorage.getItem(
-            "rtsAdminLoggedIn"
+async function checkAdminSession() {
+
+    const login =
+        document.getElementById(
+            "adminLogin"
+        );
+
+    const panel =
+        document.getElementById(
+            "adminPanel"
         );
 
 
-    if (
-        loggedIn === "true"
-    ) {
+    if (!login || !panel) {
+        return;
+    }
+
+
+    try {
+
+        const {
+            data,
+            error
+        } =
+            await supabaseClient.auth
+                .getSession();
+
+
+        if (error) {
+
+            console.error(
+                "Unable to check admin session:",
+                error
+            );
+
+            showAdminLogin();
+
+            return;
+
+        }
+
+
+        const session =
+            data?.session;
+
+
+        if (!session) {
+
+            showAdminLogin();
+
+            return;
+
+        }
+
+
+        /*
+         * Make sure this session belongs
+         * to the administrator.
+         */
+
+        const ADMIN_EMAIL =
+            "devmccollins@gmail.com";
+
+
+        if (
+            session.user.email?.toLowerCase() !==
+            ADMIN_EMAIL.toLowerCase()
+        ) {
+
+            await supabaseClient.auth.signOut();
+
+            showAdminLogin();
+
+            return;
+
+        }
+
 
         showAdminPanel();
 
     }
+
+    catch (error) {
+
+        console.error(
+            "Admin authentication error:",
+            error
+        );
+
+        showAdminLogin();
+
+    }
+
+}
+
+
+/* =====================================================
+   SHOW ADMIN LOGIN
+===================================================== */
+
+function showAdminLogin() {
+
+    const login =
+        document.getElementById(
+            "adminLogin"
+        );
+
+    const panel =
+        document.getElementById(
+            "adminPanel"
+        );
+
+
+    if (!login || !panel) {
+        return;
+    }
+
+
+    panel.classList.add("hidden");
+
+    login.classList.remove("hidden");
 
 }
 
@@ -4143,7 +4887,20 @@ function checkAdminSession() {
 ===================================================== */
 
 function setupEventListeners() {
+    const createEditorForm =
+        document.getElementById(
+            "createEditorForm"
+        );
 
+
+    if (createEditorForm) {
+
+        createEditorForm.addEventListener(
+            "submit",
+            createEditorAccount
+        );
+
+    }
     const logoInput =
         document.getElementById(
             "departmentLogo"
@@ -4793,7 +5550,579 @@ function openEditorManagement() {
     loadEditorManagement();
 
 }
+/* =====================================================
+   EDITOR MANAGEMENT
+===================================================== */
 
+const CREATE_EDITOR_FUNCTION =
+    `${SUPABASE_URL}/functions/v1/create-editor`;
+
+
+/* =====================================================
+   SHOW / HIDE CREATION FORM
+===================================================== */
+
+function openEditorCreationForm() {
+
+    const form =
+        document.getElementById(
+            "editorCreationForm"
+        );
+
+    if (!form) {
+        return;
+    }
+
+    form.classList.remove("hidden");
+
+    document.getElementById(
+        "newEditorEmail"
+    )?.focus();
+
+}
+
+
+function closeEditorCreationForm() {
+
+    const form =
+        document.getElementById(
+            "editorCreationForm"
+        );
+
+    if (!form) {
+        return;
+    }
+
+    form.classList.add("hidden");
+
+    const editorForm =
+        document.getElementById(
+            "createEditorForm"
+        );
+
+    if (editorForm) {
+        editorForm.reset();
+    }
+
+    const message =
+        document.getElementById(
+            "createEditorMessage"
+        );
+
+    if (message) {
+        message.textContent = "";
+    }
+
+}
+
+
+/* =====================================================
+   LOAD EDITORS
+===================================================== */
+
+async function loadEditorManagement() {
+
+    const container =
+        document.getElementById(
+            "editorManagementList"
+        );
+
+    if (!container) {
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="management-empty">
+            Loading editors...
+        </div>
+    `;
+
+    try {
+
+        const {
+            data,
+            error
+        } =
+            await supabaseClient
+                .from("editors")
+                .select("id, email")
+                .order(
+                    "email",
+                    {
+                        ascending: true
+                    }
+                );
+
+        if (error) {
+
+            console.error(
+                "Editor loading error:",
+                error
+            );
+
+            container.innerHTML = `
+                <div class="management-empty">
+                    Unable to load editors.
+                </div>
+            `;
+
+            return;
+        }
+
+        displayEditorManagement(
+            data || []
+        );
+
+    }
+
+    catch (error) {
+
+        console.error(error);
+
+        container.innerHTML = `
+            <div class="management-empty">
+                Unable to load editors.
+            </div>
+        `;
+
+    }
+
+}
+
+
+/* =====================================================
+   DISPLAY EDITORS
+===================================================== */
+
+let editorManagementDatabase = [];
+
+
+function displayEditorManagement(
+    editors
+) {
+
+    const container =
+        document.getElementById(
+            "editorManagementList"
+        );
+
+    if (!container) {
+        return;
+    }
+
+    editorManagementDatabase =
+        editors || [];
+
+    const search =
+        document.getElementById(
+            "editorManagementSearch"
+        )?.value
+        ?.trim()
+        .toLowerCase()
+        || "";
+
+
+    const filtered =
+        editorManagementDatabase.filter(
+            editor =>
+                (editor.email || "")
+                    .toLowerCase()
+                    .includes(search)
+        );
+
+
+    container.innerHTML = "";
+
+
+    if (filtered.length === 0) {
+
+        container.innerHTML = `
+            <div class="management-empty">
+                No editors found.
+            </div>
+        `;
+
+        return;
+
+    }
+
+
+    filtered.forEach(
+        editor => {
+
+            const item =
+                document.createElement(
+                    "div"
+                );
+
+            item.className =
+                "management-item";
+
+
+            item.innerHTML = `
+
+                <div>
+
+                    <span class="management-name">
+                        ${escapeHTML(
+                            editor.email
+                        )}
+                    </span>
+
+                    <div
+                        style="
+                            font-size:13px;
+                            opacity:.6;
+                            margin-top:4px;
+                        "
+                    >
+                        Editor Account
+                    </div>
+
+                </div>
+
+
+                <div class="management-actions">
+
+                    <button
+                        class="management-button delete"
+                        onclick="removeEditor('${editor.id}')"
+                    >
+                        Remove
+                    </button>
+
+                </div>
+
+            `;
+
+
+            container.appendChild(item);
+
+        }
+    );
+
+}
+
+
+/* =====================================================
+   CREATE EDITOR
+===================================================== */
+
+function setupEditorManagement() {
+
+    const form =
+        document.getElementById(
+            "createEditorForm"
+        );
+
+    if (!form) {
+        return;
+    }
+
+
+    form.addEventListener(
+        "submit",
+        async function(event) {
+
+            event.preventDefault();
+
+
+            const email =
+                document.getElementById(
+                    "newEditorEmail"
+                )?.value
+                ?.trim();
+
+
+            const password =
+                document.getElementById(
+                    "newEditorPassword"
+                )?.value;
+
+
+            const message =
+                document.getElementById(
+                    "createEditorMessage"
+                );
+
+
+            const button =
+                form.querySelector(
+                    "button[type='submit']"
+                );
+
+
+            if (message) {
+                message.textContent = "";
+            }
+
+
+            if (!email || !password) {
+                return;
+            }
+
+
+            if (button) {
+
+                button.disabled = true;
+
+                button.textContent =
+                    "Creating...";
+
+            }
+
+
+            try {
+
+                const {
+                    data: {
+                        session
+                    }
+                } =
+                    await supabaseClient.auth
+                        .getSession();
+
+
+                if (!session) {
+
+                    if (message) {
+                        message.textContent =
+                            "Your admin session has expired.";
+                    }
+
+                    return;
+
+                }
+
+
+                const response =
+                    await fetch(
+                        CREATE_EDITOR_FUNCTION,
+                        {
+                            method: "POST",
+
+                            headers: {
+
+                                "Authorization":
+                                    `Bearer ${session.access_token}`,
+
+                                "Content-Type":
+                                    "application/json"
+
+                            },
+
+                            body:
+                                JSON.stringify({
+                                    email:
+                                        email,
+
+                                    password:
+                                        password
+                                })
+
+                        }
+                    );
+
+
+                const result =
+                    await response.json();
+
+
+                if (!response.ok) {
+
+                    if (message) {
+                        message.textContent =
+                            result.error ||
+                            "Unable to create editor.";
+                    }
+
+                    return;
+
+                }
+
+
+                if (message) {
+
+                    message.textContent =
+                        "Editor created successfully.";
+
+                }
+
+
+                closeEditorCreationForm();
+
+                await loadEditorManagement();
+
+            }
+
+            catch (error) {
+
+                console.error(error);
+
+                if (message) {
+                    message.textContent =
+                        "Unable to connect to the server.";
+                }
+
+            }
+
+            finally {
+
+                if (button) {
+
+                    button.disabled = false;
+
+                    button.textContent =
+                        "Create Editor";
+
+                }
+
+            }
+
+        }
+    );
+
+
+    const search =
+        document.getElementById(
+            "editorManagementSearch"
+        );
+
+
+    if (search) {
+
+        search.addEventListener(
+            "input",
+            function() {
+
+                displayEditorManagement(
+                    editorManagementDatabase
+                );
+
+            }
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   REMOVE EDITOR
+===================================================== */
+
+async function removeEditor(
+    userId
+) {
+
+    if (!userId) {
+        return;
+    }
+
+
+    const editor =
+        editorManagementDatabase.find(
+            item =>
+                String(item.id) ===
+                String(userId)
+        );
+
+
+    if (!editor) {
+        return;
+    }
+
+
+    const confirmed =
+        confirm(
+            `Are you sure you want to remove ${editor.email} as an editor?`
+        );
+
+
+    if (!confirmed) {
+        return;
+    }
+
+
+    try {
+
+        const {
+            data: {
+                session
+            }
+        } =
+            await supabaseClient.auth
+                .getSession();
+
+
+        if (!session) {
+
+            alert(
+                "Your admin session has expired."
+            );
+
+            return;
+
+        }
+
+
+        const response =
+            await fetch(
+                CREATE_EDITOR_FUNCTION,
+                {
+                    method: "DELETE",
+
+                    headers: {
+
+                        "Authorization":
+                            `Bearer ${session.access_token}`,
+
+                        "Content-Type":
+                            "application/json"
+
+                    },
+
+                    body:
+                        JSON.stringify({
+                            userId:
+                                userId
+                        })
+
+                }
+            );
+
+
+        const result =
+            await response.json();
+
+
+        if (!response.ok) {
+
+            alert(
+                result.error ||
+                "Unable to remove editor."
+            );
+
+            return;
+
+        }
+
+
+        await loadEditorManagement();
+
+    }
+
+    catch (error) {
+
+        console.error(error);
+
+        alert(
+            "Unable to connect to the server."
+        );
+
+    }
+
+}
 /* =====================================================
    INITIALIZE WEBSITE
 ===================================================== */
@@ -4809,6 +6138,92 @@ document.addEventListener(
         setupDepartmentForm();
 
         setupEventListeners();
+        const adminForgotPassword =
+    document.getElementById("adminForgotPassword");
+
+if (adminForgotPassword) {
+
+    adminForgotPassword.addEventListener(
+        "click",
+        async function () {
+
+            const error =
+                await sendPasswordReset(ADMIN_EMAIL);
+
+            const message =
+                document.getElementById("adminLoginError");
+
+            if (message) {
+
+                message.style.color = error ? "" : "green";
+
+                message.textContent =
+                    error
+                        ? (error.message || "Unable to send reset email.")
+                        : "Password reset email sent. Check your inbox.";
+
+            }
+
+        }
+    );
+
+}
+
+
+const editorForgotPassword =
+    document.getElementById("editorForgotPassword");
+
+if (editorForgotPassword) {
+
+    editorForgotPassword.addEventListener(
+        "click",
+        async function () {
+
+            const email =
+                document.getElementById("editorEmail")?.value?.trim();
+
+            const message =
+                document.getElementById("editorLoginError");
+
+            if (!email) {
+
+                if (message) {
+                    message.textContent =
+                        "Enter your email above first, then click Forgot Password.";
+                }
+
+                return;
+
+            }
+
+            const error =
+                await sendPasswordReset(email);
+
+            if (message) {
+
+                message.style.color = error ? "" : "green";
+
+                message.textContent =
+                    error
+                        ? (error.message || "Unable to send reset email.")
+                        : "Password reset email sent. Check your inbox.";
+
+            }
+
+        }
+    );
+
+}
+
+        console.log(
+            "Departments loaded:",
+            departmentDatabase
+        );
+        
+        console.log(
+            "Department count:",
+            departmentDatabase.length
+        );
 
 
         /* =============================================
@@ -4853,11 +6268,13 @@ document.addEventListener(
         await checkEditorSession();
 
 
-        /* =============================================
-           ADMIN
+       /* =============================================
+          ADMIN
         ============================================== */
 
-        checkAdminSession();
+        setupAdminLogin();
+
+        await checkAdminSession();
         loadEditorManagement();
 
 
@@ -4870,9 +6287,37 @@ document.addEventListener(
         displayStatusManagement();
 
         displayDepartmentManagement();
+        loadEditorManagement();
 
     }
 );
+
+/* =====================================================
+   GET DEPARTMENT LOGO
+===================================================== */
+
+function getDepartmentLogo(departmentName) {
+
+    if (!departmentName) {
+        return "";
+    }
+
+    const department =
+        departmentDatabase.find(
+            department =>
+                department.name.toLowerCase() ===
+                departmentName.toLowerCase()
+        );
+
+    if (!department) {
+        return "";
+    }
+
+    return getSafeLogoUrl(
+        department.logoUrl
+    );
+
+}
 
 setupEventListeners();
 setupCreateEditorForm();
