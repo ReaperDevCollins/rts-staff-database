@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Editor Panel | RTS Staff Database</title>
+
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+
+</head>
+
+
+<body>
+
+
+<!-- =====================================================
+     TOP NAVIGATION
+===================================================== -->
+
+<header class="topbar">
+
+    <div class="logo">
+
+        <img
+            src="rts-logo.png"
+            class="rts-logo"
+            alt="RTS Logo"
+        >
+
+        <span>
+            RTS Staff Database
+        </span>
+
+    </div>
+
+
+    <nav class="navigation">
+
+        <a
+            href="index.html"
+            class="nav-link"
+        >
+            Home
+        </a>
+
+        <a
+            href="staff.html"
+            class="nav-link"
+        >
+            Staff List
+        </a>
+
+        <a
+            href="departments.html"
+            class="nav-link"
+        >
+            Departments
+        </a>
+
+        <a
+            href="admin.html"
+            class="nav-link"
+        >
+            Admin Panel
+        </a>
+
+        <a
+            href="editor.html"
+            class="nav-link active"
+        >
+            Editor Panel
+        </a>
+
+    </nav>
+
+
+    <div class="database-status">
+
+        <span class="status-dot"></span>
+
+        Online
+
+    </div>
+
+</header>
+
+
+
+<!-- =====================================================
+     PAGE
+===================================================== -->
+
+<main class="page">
+
+
+<!-- =====================================================
+     EDITOR LOGIN
+===================================================== -->
+
+<section
+    id="editorLogin"
+    class="login-container"
+>
+
+    <div class="login-card">
+
+        <img
+            src="rts-logo.png"
+            class="login-logo"
+            alt="RTS Logo"
+        >
+
+
+        <p class="section-label">
+            RESTRICTED ACCESS
+        </p>
+
+
+        <h1>
+            Editor Panel
+        </h1>
+
+
+        <p>
+            Sign in with your authorized
+            RTS editor account.
+        </p>
+
+
+        <form id="editorLoginForm">
+
+            <div class="form-group">
+
+                <label for="editorEmail">
+                    Email
+                </label>
+
+                <input
+                    type="email"
+                    id="editorEmail"
+                    placeholder="Editor Email"
+                    autocomplete="username"
+                    required
+                >
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="editorPassword">
+                    Password
+                </label>
+
+                <input
+                    type="password"
+                    id="editorPassword"
+                    placeholder="Password"
+                    autocomplete="current-password"
+                    required
+                >
+
+            </div>
+
+
+            <button
+                type="submit"
+                class="login-button"
+            >
+                Sign In
+            </button>
+            
+            <button
+            type="button"
+            id="editorForgotPassword"
+            class="secondary-button"
+            style="margin-top: 10px; width: 100%;"
+        >
+            Forgot Password?
+        </button>
+
+            <p
+                id="editorLoginError"
+                class="login-error"
+            ></p>
+
+        </form>
+
+    </div>
+
+</section>
+
+
+
+<!-- =====================================================
+     EDITOR PANEL
+===================================================== -->
+
+<section
+    id="editorPanel"
+    class="panel-content hidden"
+>
+
+
+<!-- =====================================================
+     PAGE HEADER
+===================================================== -->
+
+<div class="page-header">
+
+    <p class="section-label">
+        STAFF DATABASE
+    </p>
+
+    <h1>
+        Editor Panel
+    </h1>
+
+    <p>
+        Manage RTS personnel and department information.
+    </p>
+
+</div>
+
+
+
+<!-- =====================================================
+     TOOLBAR
+===================================================== -->
+
+<div class="panel-toolbar">
+
+    <span>
+        Editor Access
+    </span>
+
+
+    <button
+        type="button"
+        onclick="editorLogout()"
+        class="logout-button"
+    >
+        Log Out
+    </button>
+
+</div>
+
+
+
+<!-- =====================================================
+     STAFF MANAGEMENT
+===================================================== -->
+
+<section class="management-section">
+
+    <div class="management-header">
+
+        <div>
+
+            <p class="section-label">
+                PERSONNEL
+            </p>
+
+            <h2>
+                Staff Management
+            </h2>
+
+            <p>
+                Add, edit, and remove RTS personnel records.
+            </p>
+
+        </div>
+
+
+        <button
+            type="button"
+            class="management-add-button"
+            onclick="openStaffForm()"
+        >
+            + Add Staff Member
+        </button>
+
+    </div>
+
+
+    <div class="staff-management-search">
+
+        <input
+            type="text"
+            id="editorStaffSearch"
+            placeholder="Search Roblox username..."
+        >
+
+    </div>
+
+
+    <div
+        id="editorStaffList"
+        class="editor-staff-list"
+    ></div>
+
+</section>
+
+
+
+<!-- =====================================================
+     STAFF FORM MODAL
+===================================================== -->
+
+<div
+    id="staffFormModal"
+    class="modal-overlay hidden"
+>
+
+    <div class="staff-form-modal">
+
+        <div class="modal-header">
+
+            <div>
+
+                <p class="section-label">
+                    PERSONNEL RECORD
+                </p>
+
+                <h2 id="staffFormTitle">
+                    Add Staff Member
+                </h2>
+
+            </div>
+
+
+            <button
+                type="button"
+                class="modal-close"
+                onclick="closeStaffForm()"
+            >
+                ×
+            </button>
+
+        </div>
+
+
+        <form id="staffForm">
+
+
+            <div class="form-group">
+
+                <label for="staffUsername">
+                    Roblox Username
+                </label>
+
+                <input
+                    type="text"
+                    id="staffUsername"
+                    placeholder="ExampleUsername"
+                    required
+                >
+
+            </div>
+
+            <div class="form-group">
+
+                <label for="staffAvatarUrl">
+                    Profile Picture URL
+                </label>
+
+                <input
+                    type="url"
+                    id="staffAvatarUrl"
+                    placeholder="https://example.com/avatar.png"
+                >
+
+                <small>
+                    Paste a direct image link from their Roblox profile.
+                </small>
+
+            </div>
+
+            <div
+                id="staffAvatarPreview"
+                class="department-logo-preview"
+                style="margin-bottom: 18px;"
+            >
+
+                <span>
+                    No Picture
+                </span>
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="staffRank">
+                    Rank
+                </label>
+
+                <select
+                    id="staffRank"
+                    required
+                ></select>
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="staffStatus">
+                    Status
+                </label>
+
+                <select
+                    id="staffStatus"
+                    required
+                ></select>
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="staffDepartment">
+                    Department
+                </label>
+
+                <select
+                    id="staffDepartment"
+                    required
+                ></select>
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="staffStartDate">
+                    Start Date
+                </label>
+
+                <input
+                    type="date"
+                    id="staffStartDate"
+                    required
+                >
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="staffEndDate">
+                    End Date
+                </label>
+
+                <input
+                    type="date"
+                    id="staffEndDate"
+                >
+
+                <small>
+                    Leave blank if the staff member
+                    is currently serving.
+                </small>
+
+            </div>
+
+
+            <div class="service-preview">
+
+                <span>
+                    Service Length
+                </span>
+
+                <strong id="serviceLengthPreview">
+                    0 Days
+                </strong>
+
+            </div>
+
+
+            <div class="modal-buttons">
+
+                <button
+                    type="button"
+                    class="cancel-button"
+                    onclick="closeStaffForm()"
+                >
+                    Cancel
+                </button>
+
+
+                <button
+                    type="submit"
+                    class="save-button"
+                >
+                    Save Staff Member
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+
+<!-- =====================================================
+     DEPARTMENT MANAGEMENT
+===================================================== -->
+
+<section class="management-section">
+
+    <div class="management-header">
+
+        <div>
+
+            <p class="section-label">
+                ORGANIZATION
+            </p>
+
+            <h2>
+                Department Management
+            </h2>
+
+            <p>
+                Manage department names, logos,
+                descriptions, heads, and senior staff.
+            </p>
+
+        </div>
+
+
+        <button
+            type="button"
+            class="management-add-button"
+            onclick="openDepartmentEditor()"
+        >
+            + Add Department
+        </button>
+
+    </div>
+
+
+    <div
+        id="departmentManagementList"
+        class="management-list"
+    ></div>
+
+</section>
+
+
+
+<!-- =====================================================
+     DEPARTMENT EDITOR MODAL
+===================================================== -->
+
+<div
+    id="departmentEditorModal"
+    class="modal-overlay hidden"
+>
+
+    <div class="staff-form-modal">
+
+
+        <!-- MODAL HEADER -->
+
+        <div class="modal-header">
+
+            <div>
+
+                <p class="section-label">
+                    DEPARTMENT RECORD
+                </p>
+
+                <h2 id="departmentEditorTitle">
+                    Add Department
+                </h2>
+
+            </div>
+
+
+            <button
+                type="button"
+                class="modal-close"
+                onclick="closeDepartmentEditor()"
+            >
+                ×
+            </button>
+
+        </div>
+
+
+
+        <!-- DEPARTMENT FORM -->
+
+        <form id="departmentForm">
+
+
+            <!-- =================================================
+                 DEPARTMENT NAME
+            ================================================== -->
+
+            <div class="form-group">
+
+                <label for="departmentName">
+                    Department Name
+                </label>
+
+                <input
+                    type="text"
+                    id="departmentName"
+                    placeholder="Example: Public Relations"
+                    required
+                >
+
+            </div>
+
+
+
+            <!-- =================================================
+                 DEPARTMENT LOGO UPLOAD
+            ================================================== -->
+
+            <div class="form-group">
+
+                <label for="departmentLogoFile">
+                    Department Logo
+                </label>
+
+                <input
+                    type="file"
+                    id="departmentLogoFile"
+                    accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
+                >
+
+                <small>
+                    Upload a PNG, JPG, WEBP, GIF, or SVG logo
+                    from your computer.
+                </small>
+
+            </div>
+
+
+
+            <!-- =================================================
+                 EXISTING LOGO URL
+            ================================================== -->
+
+            <div class="form-group">
+
+                <label for="departmentLogo">
+                    Logo URL
+                </label>
+
+                <input
+                    type="url"
+                    id="departmentLogo"
+                    placeholder="https://example.com/logo.png"
+                >
+
+                <small>
+                    Optional. You can use a direct image URL
+                    instead of uploading a file.
+                </small>
+
+            </div>
+
+
+
+            <!-- =================================================
+                 LOGO PREVIEW
+            ================================================== -->
+
+            <div class="department-logo-preview">
+
+                <span>
+                    Logo Preview
+                </span>
+
+
+                <div
+                    id="departmentLogoPreview"
+                    class="department-logo-preview-box"
+                >
+
+                    <span>
+                        No Logo
+                    </span>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- =================================================
+                 DESCRIPTION
+            ================================================== -->
+
+            <div class="form-group">
+
+                <label for="departmentDescription">
+                    Department Description
+                </label>
+
+                <textarea
+                    id="departmentDescription"
+                    rows="5"
+                    placeholder="Describe the purpose and responsibilities of this department..."
+                ></textarea>
+
+            </div>
+
+
+
+            <!-- =================================================
+                 DEPARTMENT HEAD
+            ================================================== -->
+
+            <div class="form-group">
+
+                <label for="departmentHead">
+                    Department Head
+                </label>
+
+                <input
+                    type="text"
+                    id="departmentHead"
+                    placeholder="Roblox Username"
+                >
+
+            </div>
+
+
+
+            <!-- =================================================
+                 SENIOR STAFF
+            ================================================== -->
+
+            <div class="form-group">
+
+                <label for="departmentSeniorStaff">
+                    Senior Staff
+                </label>
+
+                <textarea
+                    id="departmentSeniorStaff"
+                    rows="4"
+                    placeholder="Enter senior staff usernames, one per line..."
+                ></textarea>
+
+                <small>
+                    Enter one Roblox username per line.
+                </small>
+
+            </div>
+
+
+
+            <!-- =================================================
+                 BUTTONS
+            ================================================== -->
+
+            <div class="modal-buttons">
+
+                <button
+                    type="button"
+                    class="cancel-button"
+                    onclick="closeDepartmentEditor()"
+                >
+                    Cancel
+                </button>
+
+
+                <button
+                    type="submit"
+                    class="save-button"
+                >
+                    Save Department
+                </button>
+
+            </div>
+
+
+        </form>
+
+    </div>
+
+</div>
+
+
+
+<!-- =====================================================
+     QUICK DEPARTMENT MANAGEMENT
+===================================================== -->
+
+<section class="admin-grid">
+
+
+    <div class="admin-card">
+
+        <h2>
+            Departments
+        </h2>
+
+        <p>
+            Edit department names, logos,
+            descriptions, heads, and senior staff.
+        </p>
+
+        <button
+            type="button"
+            onclick="openDepartmentManagement()"
+        >
+            Manage Departments
+        </button>
+
+    </div>
+
+
+
+    <div class="admin-card">
+
+        <h2>
+            Department Heads
+        </h2>
+
+        <p>
+            Manage the current head assigned
+            to each department.
+        </p>
+
+        <button
+            type="button"
+            onclick="openDepartmentHeads()"
+        >
+            Manage Heads
+        </button>
+
+    </div>
+
+
+
+    <div class="admin-card">
+
+        <h2>
+            Senior Staff
+        </h2>
+
+        <p>
+            Manage senior personnel
+            within departments.
+        </p>
+
+        <button
+            type="button"
+            onclick="openSeniorStaff()"
+        >
+            Manage Senior Staff
+        </button>
+
+    </div>
+
+
+</section>
+
+<!-- =====================================================
+     STAFF SPOTLIGHTS
+===================================================== -->
+
+<section class="management-section">
+
+    <div class="management-header">
+
+        <div>
+
+            <p class="section-label">
+                RECOGNITION
+            </p>
+
+            <h2>
+                Staff Spotlights
+            </h2>
+
+            <p>
+                Choose who is featured as Staff of the Month
+                and Staff of the Week on the homepage.
+            </p>
+
+        </div>
+
+    </div>
+
+    <div style="padding: 20px 25px;">
+
+        <div class="form-group">
+
+            <label>Staff of the Month</label>
+
+            <div style="display:flex; gap:10px;">
+
+                <select id="spotlightMonthAddSelect" style="flex:1;"></select>
+
+                <button
+                    type="button"
+                    class="management-add-button"
+                    onclick="addSpotlightMember('month')"
+                >
+                    + Add
+                </button>
+
+            </div>
+
+        </div>
+
+        <div id="spotlightMonthList" class="management-list"></div>
+
+        <div class="form-group" style="margin-top: 25px;">
+
+            <label>Staff of the Week</label>
+
+            <div style="display:flex; gap:10px;">
+
+                <select id="spotlightWeekAddSelect" style="flex:1;"></select>
+
+                <button
+                    type="button"
+                    class="management-add-button"
+                    onclick="addSpotlightMember('week')"
+                >
+                    + Add
+                </button>
+
+            </div>
+
+        </div>
+
+        <div id="spotlightWeekList" class="management-list"></div>
+
+    </div>
+
+</section>
+
+<!-- =====================================================
+     RANK MANAGEMENT
+===================================================== -->
+
+<section class="management-section">
+
+    <div class="management-header">
+
+        <div>
+
+            <p class="section-label">
+                CONFIGURATION
+            </p>
+
+            <h2>
+                Rank Management
+            </h2>
+
+            <p>
+                Manage the ranks available to staff members.
+            </p>
+
+        </div>
+
+
+        <button
+            type="button"
+            class="management-add-button"
+            onclick="addRank()"
+        >
+            + Add Rank
+        </button>
+
+    </div>
+
+
+    <div
+        id="rankManagementList"
+        class="management-list"
+    ></div>
+
+</section>
+
+
+
+<!-- =====================================================
+     STATUS MANAGEMENT
+===================================================== -->
+
+<section class="management-section">
+
+    <div class="management-header">
+
+        <div>
+
+            <p class="section-label">
+                CONFIGURATION
+            </p>
+
+            <h2>
+                Status Management
+            </h2>
+
+            <p>
+                Manage the statuses available to staff members.
+            </p>
+
+        </div>
+
+
+        <button
+            type="button"
+            class="management-add-button"
+            onclick="addStatus()"
+        >
+            + Add Status
+        </button>
+
+    </div>
+
+
+    <div
+        id="statusManagementList"
+        class="management-list"
+    ></div>
+
+</section>
+
+
+</section>
+
+
+</main>
+
+
+
+<!-- =====================================================
+     SUPABASE
+===================================================== -->
+
+<script
+    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+></script>
+
+
+
+<!-- =====================================================
+     RTS JAVASCRIPT
+===================================================== -->
+
+<script src="script.js"></script>
+
+
+</body>
+
+</html>
