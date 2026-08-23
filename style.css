@@ -806,19 +806,20 @@ footer {
 
 .staff-status {
 
-    display: inline-flex;
-
-    width: fit-content;
-
-    padding: 5px 9px;
-
-    border-radius: 6px;
-
-    background: #252832;
-
-    color: #b9bec8;
-
-    font-size: 11px;
+    .staff-status.status-active {
+        background: rgba(72, 181, 122, 0.15);
+        color: #48b57a;
+    }
+    
+    .staff-status.status-resigned {
+        background: rgba(181, 138, 40, 0.15);
+        color: #b58a28;
+    }
+    
+    .staff-status.status-terminated {
+        background: rgba(148, 31, 40, 0.25);
+        color: #e05252;
+    }
 
 }
 
