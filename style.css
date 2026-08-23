@@ -1,496 +1,760 @@
 /* =====================================================
    RTS STAFF DATABASE
-   SUPABASE VERSION
+   COMPLETE WEBSITE STYLESHEET
 ===================================================== */
 
 
 /* =====================================================
-   SUPABASE CONFIGURATION
+   RESET
 ===================================================== */
 
-const SUPABASE_URL =
-    "https://aqrqfbwktwdhpfvcethy.supabase.co";
-
-const SUPABASE_PUBLISHABLE_KEY =
-    "sb_publishable_yx-KgW6xvRxogF-CSLYVfg_uM6Hh7ws";
-
-    const supabaseClient = window.supabase.createClient(
-        SUPABASE_URL,
-        SUPABASE_PUBLISHABLE_KEY
-    );
-    const ADMIN_EMAIL = "devmccollins@gmail.com";
-
-const RESET_PASSWORD_URL =
-    "https://reaperdevcollins.github.io/rts-staff-database/reset-password.html";
-
-async function sendPasswordReset(email) {
-
-    const { error } =
-        await supabaseClient.auth.resetPasswordForEmail(
-            email,
-            { redirectTo: RESET_PASSWORD_URL }
-        );
-
-    return error;
-
-}
-/* =====================================================
-   CHECK EDITOR AUTHORIZATION
-===================================================== */
-
-async function isAuthorizedEditor(userId) {
-
-    if (!userId) {
-        return false;
-    }
-
-    try {
-
-        const {
-            data,
-            error
-        } = await supabaseClient
-            .from("editors")
-            .select("id")
-            .eq("id", userId)
-            .maybeSingle();
-
-        if (error) {
-
-            console.error(
-                "Editor authorization error:",
-                error
-            );
-
-            return false;
-        }
-
-        return !!data;
-
-    }
-
-    catch (error) {
-
-        console.error(
-            "Unexpected editor authorization error:",
-            error
-        );
-
-        return false;
-    }
-
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
-/* =====================================================
-   DEFAULT OPTIONS
-===================================================== */
+html {
+    scroll-behavior: smooth;
+}
 
-const defaultRanks = [
-    "Administrator",
-    "Moderator",
-    "Senior Staff",
-    "Staff"
-];
-
-const defaultStatuses = [
-    "Active",
-    "Resigned",
-    "Terminated"
-];
-
-
-/* =====================================================
-   RANK CONFIGURATION (SUPABASE)
-===================================================== */
-
-let rankDatabase = [];
-
-async function loadRankDatabase() {
-
-    try {
-
-        const { data, error } =
-            await supabaseClient
-                .from("ranks")
-                .select("*")
-                .order("created_at", { ascending: true });
-
-        if (error) {
-            console.error("Supabase rank loading error:", error);
-            rankDatabase = [];
-            return [];
-        }
-
-        rankDatabase = (data || []).map(rank => ({
-            id: rank.id,
-            name: rank.name || ""
-        }));
-
-        return rankDatabase;
-
-    } catch (error) {
-        console.error("Unexpected Supabase rank error:", error);
-        rankDatabase = [];
-        return [];
-    }
-
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: #0c0d12;
+    color: white;
 }
 
 
 /* =====================================================
-   DATABASE ARRAYS
+   TOP BAR
 ===================================================== */
 
-let staffDatabase = [];
+.topbar {
+    position: sticky;
+    top: 0;
 
-let departmentDatabase = [];
+    width: 100%;
+    min-height: 76px;
 
+    background: #191b21;
 
-/* =====================================================
-   MAP DEPARTMENT
-===================================================== */
+    border-top: 3px solid #b58a28;
+    border-bottom: 1px solid #30333c;
 
-function mapDepartment(department) {
+    display: flex;
+    align-items: center;
 
-    return {
+    padding: 0 40px;
 
-        id:
-            department.id,
-
-        name:
-            department.name || "",
-
-        description:
-            department.description || "",
-
-        logoUrl:
-            department.logo_url || "",
-
-        head:
-            department.head || "",
-
-        seniorStaff:
-            department.senior_staff || ""
-
-    };
-
+    z-index: 1000;
 }
 
 
 /* =====================================================
-   LOAD STAFF
+   LOGO
 ===================================================== */
 
-async function loadStaffDatabase() {
+.logo {
+    display: flex;
+    align-items: center;
 
-    try {
+    gap: 12px;
 
-        const {
-            data,
-            error
-        } =
-            await supabaseClient
-                .from("staff")
-                .select("*")
-                .order(
-                    "created_at",
-                    {
-                        ascending: true
-                    }
-                );
+    min-width: 220px;
 
-        if (error) {
+    font-size: 14px;
+    font-weight: 700;
+}
 
-            console.error(
-                "Supabase staff loading error:",
-                error
-            );
+.rts-logo {
+    width: 40px;
+    height: 40px;
 
-            return [];
+    object-fit: contain;
 
-        }
+    border-radius: 8px;
 
-        staffDatabase =
-            (data || []).map(
-                member => ({
-
-                    id:
-                        member.id,
-
-                    username:
-                        member.username || "",
-
-                    rank:
-                        member.rank || "",
-
-                    status:
-                        member.status || "",
-
-                    department:
-                        member.department || "",
-
-                    avatarUrl:
-                        member.avatar_url || "",
-
-                    startDate:
-                        member.start_date || "",
-
-                    endDate:
-                        member.end_date || ""
-
-                })
-            );
-
-        return staffDatabase;
-
-    }
-
-    catch (error) {
-
-        console.error(
-            "Unexpected Supabase staff error:",
-            error
-        );
-
-        return [];
-
-    }
-
+    display: block;
 }
 
 
 /* =====================================================
-   LOAD DEPARTMENTS
+   NAVIGATION
 ===================================================== */
 
-async function loadDepartmentDatabase() {
+.navigation {
+    display: flex;
+    align-items: center;
 
-    try {
+    gap: 5px;
 
-        const {
-            data,
-            error
-        } =
-            await supabaseClient
-                .from("departments")
-                .select("*")
-                .order(
-                    "name",
-                    {
-                        ascending: true
-                    }
-                );
+    margin-left: auto;
+    margin-right: 30px;
+}
 
-        if (error) {
+.nav-link {
+    text-decoration: none;
 
-            console.error(
-                "Supabase department loading error:",
-                error
-            );
+    color: #9297a4;
 
-            departmentDatabase = [];
+    padding: 11px 14px;
 
-            return [];
+    border-radius: 8px;
 
-        }
+    font-size: 13px;
+    font-weight: 600;
 
-        departmentDatabase =
-            (data || []).map(
-                mapDepartment
-            );
+    transition: 0.2s;
+}
 
-        return departmentDatabase;
+.nav-link:hover {
+    color: white;
+    background: #252832;
+}
 
-    }
-
-    catch (error) {
-
-        console.error(
-            "Unexpected Supabase department error:",
-            error
-        );
-
-        departmentDatabase = [];
-
-        return [];
-
-    }
-
+.nav-link.active {
+    color: white;
+    background: #292d38;
 }
 
 
 /* =====================================================
-   SERVICE LENGTH
+   DATABASE STATUS
 ===================================================== */
 
-function calculateServiceDays(
-    startDate,
-    endDate
-) {
+.database-status {
+    display: flex;
+    align-items: center;
 
-    if (!startDate) {
-        return 0;
-    }
+    gap: 7px;
 
-    const start =
-        new Date(
-            `${startDate}T00:00:00`
-        );
+    color: #888e9b;
 
-    const end =
-        endDate
-            ? new Date(
-                `${endDate}T00:00:00`
-            )
-            : new Date();
+    font-size: 12px;
 
-    if (
-        Number.isNaN(start.getTime()) ||
-        Number.isNaN(end.getTime())
-    ) {
-        return 0;
-    }
+    white-space: nowrap;
+}
 
-    const difference =
-        end.getTime() -
-        start.getTime();
+.status-dot {
+    width: 7px;
+    height: 7px;
 
-    return Math.max(
-        Math.floor(
-            difference /
-            (1000 * 60 * 60 * 24)
+    background: #48b57a;
+
+    border-radius: 50%;
+}
+
+
+/* =====================================================
+   MAIN
+===================================================== */
+
+.main {
+    min-height: calc(100vh - 76px);
+}
+
+
+/* =====================================================
+   HERO / HOME PAGE
+===================================================== */
+
+.hero {
+    min-height: 480px;
+
+    position: relative;
+
+    display: flex;
+    align-items: center;
+
+    padding: 80px;
+
+    overflow: hidden;
+
+    background:
+        linear-gradient(
+            90deg,
+            rgba(12, 13, 18, 0.96),
+            rgba(12, 13, 18, 0.72),
+            rgba(12, 13, 18, 0.88)
         ),
-        0
-    );
+        url("background.jpg");
 
+    background-size: cover;
+    background-position: center;
+
+    border-bottom: 5px solid #b58a28;
 }
 
-let statusDatabase = [];
+.hero-content {
+    max-width: 720px;
 
-async function loadStatusDatabase() {
+    position: relative;
 
-    try {
-
-        const { data, error } =
-            await supabaseClient
-                .from("statuses")
-                .select("*")
-                .order("created_at", { ascending: true });
-
-        if (error) {
-            console.error("Supabase status loading error:", error);
-            statusDatabase = [];
-            return [];
-        }
-
-        statusDatabase = (data || []).map(status => ({
-            id: status.id,
-            name: status.name || "",
-            color: status.color || "#5865f2"
-        }));
-
-        return statusDatabase;
-
-    } catch (error) {
-        console.error("Unexpected Supabase status error:", error);
-        statusDatabase = [];
-        return [];
-    }
-
+    z-index: 2;
 }
 
-function getStatusColor(statusName) {
+.eyebrow {
+    color: #b58a28;
 
-    const match = statusDatabase.find(
-        status => status.name.toLowerCase() === (statusName || "").toLowerCase()
-    );
+    font-size: 12px;
 
-    return match ? match.color : "#858b98";
+    font-weight: 800;
 
+    letter-spacing: 2px;
+
+    margin-bottom: 15px;
 }
+
+.hero h1 {
+    font-size: 56px;
+
+    line-height: 1.05;
+
+    margin-bottom: 20px;
+}
+
+.hero-description {
+    max-width: 600px;
+
+    color: #a6aab5;
+
+    font-size: 16px;
+
+    line-height: 1.7;
+
+    margin-bottom: 30px;
+}
+
 
 /* =====================================================
-   FORMAT DATE
+   HERO BUTTONS
 ===================================================== */
 
-function formatDate(dateString) {
+.hero-buttons {
+    display: flex;
 
-    if (!dateString) {
-        return "—";
-    }
+    gap: 12px;
+}
 
-    const date =
-        new Date(
-            `${dateString}T00:00:00`
+.primary-button {
+    padding: 13px 21px;
+
+    background: #b58a28;
+
+    color: #111;
+
+    border-radius: 8px;
+
+    text-decoration: none;
+
+    font-weight: 700;
+
+    transition: 0.2s;
+}
+
+.primary-button:hover {
+    transform: translateY(-2px);
+
+    filter: brightness(1.1);
+}
+
+.secondary-button {
+    padding: 13px 21px;
+
+    background: #242730;
+
+    color: white;
+
+    border: 1px solid #353945;
+
+    border-radius: 8px;
+
+    text-decoration: none;
+
+    font-weight: 600;
+
+    transition: 0.2s;
+}
+
+.secondary-button:hover {
+    background: #303440;
+}
+
+
+/* =====================================================
+   GENERAL SECTIONS
+===================================================== */
+
+.section {
+    padding: 60px 55px;
+}
+
+.section-heading {
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: end;
+
+    margin-bottom: 28px;
+}
+
+.section-label {
+    font-size: 10px;
+
+    letter-spacing: 1.5px;
+
+    font-weight: 800;
+
+    opacity: 0.7;
+
+    margin-bottom: 6px;
+}
+
+.section-heading h2 {
+    font-size: 30px;
+}
+
+
+/* =====================================================
+   DEPARTMENTS
+===================================================== */
+
+.departments-section {
+    background: #941f28;
+}
+
+.view-button {
+    background: rgba(0, 0, 0, 0.2);
+
+    color: white;
+
+    padding: 10px 15px;
+
+    border-radius: 7px;
+
+    text-decoration: none;
+
+    font-weight: 600;
+
+    transition: 0.2s;
+}
+
+.view-button:hover {
+    background: rgba(0, 0, 0, 0.35);
+}
+
+.department-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(
+            auto-fit,
+            minmax(220px, 1fr)
         );
 
-    if (
-        Number.isNaN(
-            date.getTime()
-        )
-    ) {
-        return "—";
-    }
+    gap: 18px;
+}
 
-    return date.toLocaleDateString(
-        "en-US",
-        {
-            month: "short",
-            day: "numeric",
-            year: "numeric"
-        }
-    );
+.department-card {
+    background: rgba(0, 0, 0, 0.22);
 
+    border:
+        1px solid
+        rgba(255, 255, 255, 0.15);
+
+    border-radius: 12px;
+
+    padding: 23px;
+
+    cursor: pointer;
+
+    transition: 0.2s;
+}
+
+.department-card:hover {
+    transform: translateY(-5px);
+
+    background: rgba(0, 0, 0, 0.32);
+
+    border-color:
+        rgba(255, 255, 255, 0.35);
+}
+
+.department-logo {
+    width: 58px;
+    height: 58px;
+
+    border-radius: 12px;
+
+    background:
+        rgba(255, 255, 255, 0.12);
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    font-size: 20px;
+
+    font-weight: 700;
+
+    margin-bottom: 18px;
+}
+
+.department-card h3 {
+    font-size: 17px;
+
+    margin-bottom: 8px;
+}
+
+.department-card p {
+    color:
+        rgba(255, 255, 255, 0.7);
+
+    font-size: 13px;
+
+    line-height: 1.6;
 }
 
 
 /* =====================================================
-   ESCAPE HTML
+   EDITORS
 ===================================================== */
 
-function escapeHTML(text) {
+.editors-section {
+    background: #174c91;
+}
+/* =====================================================
+   STAFF SPOTLIGHTS
+===================================================== */
 
-    const div =
-        document.createElement("div");
+.spotlight-grid {
 
-    div.textContent =
-        text ?? "";
+    display: grid;
 
-    return div.innerHTML;
+    grid-template-columns:
+        repeat(auto-fit, minmax(260px, 1fr));
 
+    gap: 18px;
+
+}
+
+.spotlight-card {
+
+    background: #171920;
+
+    border: 1px solid #292c35;
+
+    border-radius: 13px;
+
+    padding: 28px;
+
+    text-align: center;
+
+}
+
+.spotlight-label {
+
+    color: #b58a28;
+
+    font-size: 11px;
+
+    font-weight: 800;
+
+    letter-spacing: 1px;
+
+    text-transform: uppercase;
+
+    margin-bottom: 18px;
+
+}
+
+.spotlight-content .staff-empty {
+
+    padding: 20px 0;
+
+}
+
+.spotlight-avatar {
+
+    width: 64px;
+
+    height: 64px;
+
+    margin: 0 auto 14px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    border-radius: 50%;
+
+    background: #292d38;
+
+    color: #b58a28;
+
+    font-weight: 800;
+
+    font-size: 18px;
+
+}
+
+.spotlight-content h3 {
+
+    font-size: 18px;
+
+    margin-bottom: 4px;
+
+}
+
+.spotlight-rank {
+
+    color: #858b98;
+
+    font-size: 13px;
+
+    margin-bottom: 10px;
+
+}
+
+.spotlight-department {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 8px;
+
+    color: #9297a4;
+
+    font-size: 13px;
+
+}
+
+.spotlight-content {
+
+    display: flex;
+
+    flex-wrap: wrap;
+
+    justify-content: center;
+
+    gap: 16px;
+
+}
+
+.spotlight-person {
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    width: 110px;
+
+}
+
+.spotlight-person .spotlight-avatar {
+
+    width: 52px;
+
+    height: 52px;
+
+    margin-bottom: 8px;
+
+    font-size: 14px;
+
+}
+
+.spotlight-person h4 {
+
+    font-size: 13px;
+
+    margin-bottom: 2px;
+
+    text-align: center;
+
+}
+
+.spotlight-person p {
+
+    color: #858b98;
+
+    font-size: 11px;
+
+    text-align: center;
+
+}
+
+.editor-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(
+            auto-fit,
+            minmax(230px, 1fr)
+        );
+
+    gap: 18px;
+}
+
+.editor-card {
+    background:
+        rgba(0, 0, 0, 0.22);
+
+    border:
+        1px solid
+        rgba(255, 255, 255, 0.15);
+
+    border-radius: 12px;
+
+    padding: 20px;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 15px;
+
+    transition: 0.2s;
+}
+
+.editor-card:hover {
+    transform: translateY(-4px);
+
+    background:
+        rgba(0, 0, 0, 0.3);
+}
+
+.editor-avatar {
+    width: 55px;
+    height: 55px;
+
+    border-radius: 50%;
+
+    background: #292d38;
+
+    object-fit: cover;
+
+    flex-shrink: 0;
+}
+
+.editor-info h3 {
+    font-size: 15px;
+
+    margin-bottom: 5px;
+}
+
+.editor-info p {
+    color:
+        rgba(255, 255, 255, 0.65);
+
+    font-size: 12px;
 }
 
 
 /* =====================================================
-   SAFE LOGO URL
+   FOOTER
 ===================================================== */
 
-function getSafeLogoUrl(url) {
+footer {
+    padding: 25px 55px;
 
-    if (!url) {
-        return "";
-    }
+    display: flex;
 
-    try {
+    justify-content: space-between;
 
-        const parsed =
-            new URL(url);
+    color: #666b77;
 
-        if (
-            parsed.protocol !== "http:" &&
-            parsed.protocol !== "https:"
-        ) {
-            return "";
-        }
+    font-size: 11px;
 
-        return parsed.href;
+    background: #0c0d12;
+}
 
-    }
 
-    catch {
-        return "";
-    }
+/* =====================================================
+   GENERAL PAGES
+===================================================== */
 
+.page {
+    max-width: 1400px;
+
+    margin: 0 auto;
+
+    padding: 60px 55px;
+}
+
+.page-header {
+    margin-bottom: 45px;
+}
+
+.page-header h1 {
+    font-size: 42px;
+
+    margin-bottom: 12px;
+}
+
+.page-header > p:last-child {
+    color: #8f95a2;
+
+    line-height: 1.6;
+}
+
+
+/* =====================================================
+   FILTERS
+===================================================== */
+
+.filters {
+    display: flex;
+
+    flex-wrap: wrap;
+
+    gap: 12px;
+
+    padding: 20px;
+
+    margin-bottom: 35px;
+
+    background: #171920;
+
+    border:
+        1px solid
+        #292c35;
+
+    border-radius: 12px;
+}
+
+.filters input,
+.filters select {
+    padding: 12px 14px;
+
+    background: #22252e;
+
+    color: white;
+
+    border:
+        1px solid
+        #343844;
+
+    border-radius: 8px;
+
+    outline: none;
+}
+
+.filters input {
+    min-width: 280px;
+}
+
+.filters select {
+    cursor: pointer;
 }
 
 
@@ -498,1699 +762,1469 @@ function getSafeLogoUrl(url) {
    STAFF STATISTICS
 ===================================================== */
 
-function updateStatistics() {
+.statistics-grid {
 
-    const total =
-        staffDatabase.length;
+    display: grid;
 
-    const active =
-        staffDatabase.filter(
-            staff =>
-                staff.status === "Active"
-        ).length;
+    grid-template-columns:
+        repeat(4, 1fr);
 
-    const terminations =
-        staffDatabase.filter(
-            staff =>
-                staff.status === "Terminated"
-        ).length;
+    gap: 18px;
 
-    const resignations =
-        staffDatabase.filter(
-            staff =>
-                staff.status === "Resigned"
-        ).length;
+    margin-bottom: 35px;
 
-    const totalElement =
-        document.getElementById(
-            "totalPersonnel"
-        );
+}
 
-    const activeElement =
-        document.getElementById(
-            "activePersonnel"
-        );
+.stat-card {
 
-    const terminationElement =
-        document.getElementById(
-            "terminationCount"
-        );
+    display: flex;
 
-    const resignationElement =
-        document.getElementById(
-            "resignationCount"
-        );
+    align-items: center;
 
-    if (totalElement) {
-        totalElement.textContent = total;
-    }
+    gap: 18px;
 
-    if (activeElement) {
-        activeElement.textContent = active;
-    }
+    padding: 24px;
 
-    if (terminationElement) {
-        terminationElement.textContent = terminations;
-    }
+    background: #171920;
 
-    if (resignationElement) {
-        resignationElement.textContent = resignations;
-    }
+    border:
+        1px solid
+        #292c35;
+
+    border-radius: 12px;
+
+    transition: 0.2s;
+
+}
+
+.stat-card:hover {
+
+    transform: translateY(-3px);
+
+    border-color: #414550;
+
+}
+
+.stat-icon {
+
+    width: 48px;
+
+    height: 48px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    background: #252832;
+
+    border-radius: 10px;
+
+    font-size: 19px;
+
+}
+
+.stat-label {
+
+    color: #858b98;
+
+    font-size: 10px;
+
+    font-weight: 800;
+
+    letter-spacing: 1px;
+
+    margin-bottom: 5px;
+
+}
+
+.stat-card h2 {
+
+    font-size: 28px;
+
+    margin-bottom: 3px;
+
+}
+
+.stat-description {
+
+    color: #666b77;
+
+    font-size: 11px;
 
 }
 
 
 /* =====================================================
-   STAFF FILTER OPTIONS
+   STAFF TABLE
 ===================================================== */
 
-function loadFilterOptions() {
+.staff-table-container {
 
-    const statusFilter =
-        document.getElementById(
-            "statusFilter"
-        );
+    width: 100%;
 
-    const rankFilter =
-        document.getElementById(
-            "rankFilter"
-        );
+    overflow-x: auto;
 
-    const departmentFilter =
-        document.getElementById(
-            "departmentFilter"
-        );
+    background: #171920;
 
+    border:
+        1px solid
+        #292c35;
 
-        if (statusFilter) {
+    border-radius: 12px;
 
-            statusFilter.innerHTML =
-                `<option value="all">All Statuses</option>`;
+}
+
+.staff-table-header {
+
+    min-width: 950px;
+
+    display: grid;
+
+    grid-template-columns:
+        1.5fr
+        1fr
+        1fr
+        1.2fr
+        1fr
+        1fr
+        0.8fr;
+
+    padding: 17px 20px;
+
+    background: #20232b;
+
+    color: #858b98;
+
+    font-size: 10px;
+
+    font-weight: 800;
+
+    text-transform: uppercase;
+
+    letter-spacing: 0.7px;
+
+    border-bottom:
+        1px solid
+        #30333c;
+
+}
+
+.staff-table-body {
+
+    min-width: 950px;
+
+}
+
+.staff-row {
+
+    display: grid;
+
+    grid-template-columns:
+        1.5fr
+        1fr
+        1fr
+        1.2fr
+        1fr
+        1fr
+        0.8fr;
+
+    align-items: center;
+
+    padding: 17px 20px;
+
+    border-bottom:
+        1px solid
+        #242730;
+
+    font-size: 13px;
+
+    transition: 0.15s;
+
+}
+
+.staff-row:last-child {
+
+    border-bottom: none;
+
+}
+
+.staff-row:hover {
+
+    background: #1d2027;
+
+}
+
+.staff-username {
+
+    font-weight: 700;
+
+    color: white;
+
+}
+
+.staff-rank {
+
+    color: #c1c5ce;
+
+}
+
+.staff-status {
+
+    .staff-status.status-active {
+        background: rgba(72, 181, 122, 0.15);
+        color: #48b57a;
+    }
     
-            statusDatabase.forEach(status => {
+    .staff-status.status-resigned {
+        background: rgba(181, 138, 40, 0.15);
+        color: #b58a28;
+    }
     
-                const option =
-                    document.createElement("option");
-    
-                option.value = status.name;
-                option.textContent = status.name;
-    
-                statusFilter.appendChild(option);
-    
-            });
-    
-        }
+    .staff-status.status-terminated {
+        background: rgba(148, 31, 40, 0.25);
+        color: #e05252;
+    }
+
+}
+
+.staff-department-cell {
+
+    color: #9297a4;
+
+}
+
+.staff-date {
+
+    color: #858b98;
+
+    font-size: 12px;
+
+}
+
+.staff-service {
+
+    color: #b58a28;
+
+    font-weight: 700;
+
+}
 
 
-    if (rankFilter) {
+/* =====================================================
+   EMPTY STAFF LIST
+===================================================== */
 
-        rankFilter.innerHTML =
-            `<option value="all">All Ranks</option>`;
+.staff-empty {
 
-        rankDatabase.forEach(rank => {
+    padding: 60px 20px;
 
-            const option =
-                document.createElement("option");
+    text-align: center;
 
-            option.value = rank.name;
-            option.textContent = rank.name;
+    color: #686e7a;
 
-            rankFilter.appendChild(option);
+}
 
-        });
+.staff-empty h3 {
+
+    color: #9ca1ac;
+
+    margin-bottom: 8px;
+
+}
+
+
+/* =====================================================
+   DEPARTMENT PROFILE
+===================================================== */
+
+.department-profile {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 30px;
+
+    padding: 35px;
+
+    margin-bottom: 50px;
+
+    background: #941f28;
+
+    border-radius: 15px;
+
+}
+
+.large-department-logo {
+
+    width: 110px;
+
+    height: 110px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    background:
+        rgba(0, 0, 0, 0.2);
+
+    border-radius: 20px;
+
+    font-size: 40px;
+
+    font-weight: 800;
+
+}
+
+.department-profile h1 {
+
+    font-size: 40px;
+
+    margin-bottom: 10px;
+
+}
+
+.department-profile p:last-child {
+
+    color:
+        rgba(255, 255, 255, 0.75);
+
+    max-width: 650px;
+
+    line-height: 1.6;
+
+}
+
+
+/* =====================================================
+   PROFILE SECTIONS
+===================================================== */
+
+.profile-section {
+
+    margin-bottom: 55px;
+
+}
+
+.profile-section h2 {
+
+    font-size: 25px;
+
+    margin-bottom: 20px;
+
+}
+
+
+/* =====================================================
+   DEPARTMENT HEAD
+===================================================== */
+
+.head-card {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 18px;
+
+    max-width: 500px;
+
+    padding: 20px;
+
+    background: #171920;
+
+    border:
+        1px solid
+        #292c35;
+
+    border-radius: 12px;
+
+}
+
+.profile-avatar {
+
+    width: 60px;
+
+    height: 60px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    border-radius: 50%;
+
+    background: #292d38;
+
+    color: #aaa;
+
+    font-size: 10px;
+
+}
+
+.head-card h3 {
+
+    margin-bottom: 5px;
+
+}
+
+.head-card p {
+
+    color: #858b98;
+
+    font-size: 13px;
+
+}
+
+
+/* =====================================================
+   SENIOR STAFF
+===================================================== */
+
+.senior-staff-grid {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(
+            auto-fit,
+            minmax(200px, 1fr)
+        );
+
+    gap: 15px;
+
+}
+
+.senior-card {
+
+    padding: 22px;
+
+    background: #171920;
+
+    border:
+        1px solid
+        #292c35;
+
+    border-radius: 12px;
+
+    text-align: center;
+
+}
+
+.senior-card .profile-avatar {
+
+    margin: 0 auto 15px;
+
+}
+
+.senior-card h3 {
+
+    font-size: 15px;
+
+    margin-bottom: 5px;
+
+}
+
+.senior-card p {
+
+    color: #858b98;
+
+    font-size: 12px;
+
+}
+
+
+/* =====================================================
+   ADMIN / EDITOR PANELS
+===================================================== */
+
+.admin-grid {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(
+            auto-fit,
+            minmax(280px, 1fr)
+        );
+
+    gap: 20px;
+
+}
+
+.admin-card {
+
+    padding: 28px;
+
+    background: #171920;
+
+    border:
+        1px solid
+        #292c35;
+
+    border-radius: 13px;
+
+    transition: 0.2s;
+
+}
+
+.admin-card:hover {
+
+    border-color: #5865f2;
+
+    transform: translateY(-3px);
+
+}
+
+.admin-card h2 {
+
+    font-size: 20px;
+
+    margin-bottom: 10px;
+
+}
+
+.admin-card p {
+
+    color: #858b98;
+
+    font-size: 13px;
+
+    line-height: 1.6;
+
+    margin-bottom: 20px;
+
+}
+
+.admin-card button {
+
+    padding: 10px 15px;
+
+    background: #292d38;
+
+    color: white;
+
+    border-radius: 7px;
+
+    font-weight: 600;
+
+    cursor: pointer;
+
+    border: none;
+
+}
+
+.admin-card button:hover {
+
+    background: #5865f2;
+
+}
+
+
+/* =====================================================
+   RESPONSIVE
+===================================================== */
+
+@media (max-width: 1000px) {
+
+    .topbar {
+
+        padding: 0 20px;
 
     }
 
+    .logo {
 
-    if (departmentFilter) {
+        min-width: auto;
 
-        departmentFilter.innerHTML =
-            `<option value="all">All Departments</option>`;
+    }
 
-        departmentDatabase.forEach(
-            department => {
+    .database-status {
 
-                const option =
-                    document.createElement(
-                        "option"
-                    );
+        display: none;
 
-                option.value =
-                    department.name;
+    }
 
-                option.textContent =
-                    department.name;
+    .statistics-grid {
 
-                departmentFilter.appendChild(
-                    option
-                );
-
-            }
-        );
+        grid-template-columns:
+            repeat(2, 1fr);
 
     }
 
 }
 
 
-/* =====================================================
-   DISPLAY STAFF
-===================================================== */
+@media (max-width: 700px) {
 
-function displayStaff() {
+    .topbar {
 
-    const container =
-        document.getElementById(
-            "staffList"
-        );
+        min-height: 70px;
 
-    if (!container) {
-        return;
-    }
+        padding: 10px 15px;
 
-    const search =
-        document.getElementById(
-            "staffSearch"
-        )?.value
-        ?.toLowerCase()
-        || "";
+        flex-wrap: wrap;
 
-    const status =
-        document.getElementById(
-            "statusFilter"
-        )?.value
-        || "all";
-
-    const rank =
-        document.getElementById(
-            "rankFilter"
-        )?.value
-        || "all";
-
-    const department =
-        document.getElementById(
-            "departmentFilter"
-        )?.value
-        || "all";
-
-
-    const filteredStaff =
-        staffDatabase.filter(
-            staff => {
-
-                const matchesSearch =
-                    staff.username
-                        .toLowerCase()
-                        .includes(search);
-
-                const matchesStatus =
-                    status === "all" ||
-                    staff.status === status;
-
-                const matchesRank =
-                    rank === "all" ||
-                    staff.rank === rank;
-
-                const matchesDepartment =
-                    department === "all" ||
-                    staff.department === department;
-
-                return (
-                    matchesSearch &&
-                    matchesStatus &&
-                    matchesRank &&
-                    matchesDepartment
-                );
-
-            }
-        );
-
-
-    container.innerHTML = "";
-
-
-    if (
-        filteredStaff.length === 0
-    ) {
-
-        container.innerHTML = `
-
-            <div class="staff-empty">
-
-                <h3>
-                    No Staff Found
-                </h3>
-
-                <p>
-                    No personnel match your current filters.
-                </p>
-
-            </div>
-
-        `;
-
-        return;
+        gap: 10px;
 
     }
 
+    .navigation {
 
-    filteredStaff.forEach(
-        staff => {
+        width: 100%;
 
-            const serviceDays =
-                calculateServiceDays(
-                    staff.startDate,
-                    staff.endDate
-                );
+        overflow-x: auto;
 
-            const row =
-                document.createElement(
-                    "div"
-                );
+        order: 3;
 
-            row.className =
-                "staff-row";
-
-            row.innerHTML = `
-
-                <div>
-
-                    <div class="staff-username">
-
-                        ${escapeHTML(
-                            staff.username
-                        )}
-
-                    </div>
-
-                </div>
-
-                <div class="staff-rank">
-
-                    ${escapeHTML(
-                        staff.rank
-                    )}
-
-                </div>
-
-                <div>
-
-                <div>
-
-                    <span
-                        class="staff-status"
-                        style="background:${escapeHTML(getStatusColor(staff.status))}33; color:${escapeHTML(getStatusColor(staff.status))};"
-                    >
-
-                        ${escapeHTML(staff.status)}
-
-                    </span>
-
-                </div>
-
-                <div class="staff-department-cell">
-
-                    ${
-                        getDepartmentLogo(staff.department)
-                            ? `<img src="${escapeHTML(getDepartmentLogo(staff.department))}" alt="" class="staff-department-logo">`
-                            : ""
-                    }
-
-                    <span>${escapeHTML(staff.department)}</span>
-
-                </div>
-
-                <div class="staff-date">
-
-                    ${formatDate(
-                        staff.startDate
-                    )}
-
-                </div>
-
-                <div class="staff-date">
-
-                    ${
-                        staff.endDate
-                            ? formatDate(
-                                staff.endDate
-                            )
-                            : "—"
-                    }
-
-                </div>
-
-                <div class="staff-service">
-
-                    ${serviceDays} Days
-
-                </div>
-
-            `;
-
-            container.appendChild(row);
-
-        }
-    );
-
-}
-
-
-/* =====================================================
-   STAFF FILTER EVENTS
-===================================================== */
-
-function setupFilters() {
-
-    const search =
-        document.getElementById(
-            "staffSearch"
-        );
-
-    const status =
-        document.getElementById(
-            "statusFilter"
-        );
-
-    const rank =
-        document.getElementById(
-            "rankFilter"
-        );
-
-    const department =
-        document.getElementById(
-            "departmentFilter"
-        );
-
-
-    if (search) {
-        search.addEventListener(
-            "input",
-            displayStaff
-        );
-    }
-
-    if (status) {
-        status.addEventListener(
-            "change",
-            displayStaff
-        );
-    }
-
-    if (rank) {
-        rank.addEventListener(
-            "change",
-            displayStaff
-        );
-    }
-
-    if (department) {
-        department.addEventListener(
-            "change",
-            displayStaff
-        );
-    }
-
-}
-
-
-/* =====================================================
-   INITIALIZE STAFF PAGE
-===================================================== */
-
-async function initializeStaffPage() {
-
-    const staffList =
-        document.getElementById(
-            "staffList"
-        );
-
-    if (!staffList) {
-        return;
-    }
-
-    await loadDepartmentDatabase();
-
-    await loadStaffDatabase();
-
-    loadFilterOptions();
-
-    setupFilters();
-
-    updateStatistics();
-
-    displayStaff();
-
-}
-
-
-/* =====================================================
-   EDITOR LOGIN
-===================================================== */
-
-function setupEditorLogin() {
-
-    const editorLoginForm =
-        document.getElementById(
-            "editorLoginForm"
-        );
-
-    if (!editorLoginForm) {
-        return;
-    }
-
-
-    editorLoginForm.addEventListener(
-        "submit",
-        async function (event) {
-
-            event.preventDefault();
-
-            const email =
-                document.getElementById(
-                    "editorEmail"
-                )?.value
-                ?.trim();
-
-            const password =
-                document.getElementById(
-                    "editorPassword"
-                )?.value;
-
-            const error =
-                document.getElementById(
-                    "editorLoginError"
-                );
-
-
-            if (error) {
-                error.textContent = "";
-            }
-
-
-            if (!email || !password) {
-
-                if (error) {
-                    error.textContent =
-                        "Please enter your email and password.";
-                }
-
-                return;
-
-            }
-
-
-            const button =
-                editorLoginForm.querySelector(
-                    "button[type='submit']"
-                );
-
-
-            if (button) {
-
-                button.disabled = true;
-
-                button.textContent =
-                    "Signing In...";
-
-            }
-
-
-            try {
-
-                const {
-                    data,
-                    error: loginError
-                } =
-                    await supabaseClient.auth
-                        .signInWithPassword({
-
-                            email:
-                                email,
-
-                            password:
-                                password
-
-                        });
-
-
-                if (loginError) {
-
-                    if (error) {
-                        error.textContent =
-                            loginError.message ||
-                            "Incorrect email or password.";
-                    }
-
-                    return;
-
-                }
-
-
-                if (!data.session) {
-
-                    if (error) {
-                        error.textContent =
-                            "Login failed. No session was created.";
-                    }
-
-                    return;
-
-                }
-
-
-                const authorized =
-                await isAuthorizedEditor(data.user.id);
-            
-            if (!authorized) {
-            
-                await supabaseClient.auth.signOut();
-            
-                if (error) {
-                    error.textContent =
-                        "You are not authorized to access the editor.";
-                }
-            
-                return;
-            
-            }
-
-
-                sessionStorage.setItem(
-                    "rtsEditorLoggedIn",
-                    "true"
-                );
-
-
-                await showEditorPanel();
-
-            }
-
-            catch (loginException) {
-
-                console.error(
-                    loginException
-                );
-
-                if (error) {
-                    error.textContent =
-                        "Unable to connect to Supabase.";
-                }
-
-            }
-
-            finally {
-
-                if (button) {
-
-                    button.disabled = false;
-
-                    button.textContent =
-                        "Sign In";
-
-                }
-
-            }
-
-        }
-    );
-
-}
-
-
-/* =====================================================
-   SHOW EDITOR PANEL
-===================================================== */
-
-async function showEditorPanel() {
-
-    const login =
-        document.getElementById(
-            "editorLogin"
-        );
-
-    const panel =
-        document.getElementById(
-            "editorPanel"
-        );
-
-    if (!login || !panel) {
-        return;
-    }
-
-
-    login.classList.add("hidden");
-
-    panel.classList.remove("hidden");
-
-
-    await loadDepartmentDatabase();
-
-    await loadStaffDatabase();
-
-
-    populateStaffFormOptions();
-
-    displayEditorStaff();
-
-    displayDepartmentManagement();
-
-    displayRankManagement();
-
-    displayStatusManagement();
-
-    await loadSpotlightDatabase();
-
-    refreshSpotlightUI();
-
-}
-
-
-/* =====================================================
-   EDITOR LOGOUT
-===================================================== */
-
-async function editorLogout() {
-
-    await supabaseClient.auth.signOut();
-
-    sessionStorage.removeItem(
-        "rtsEditorLoggedIn"
-    );
-
-    location.reload();
-
-}
-
-
-/* =====================================================
-   CHECK EDITOR SESSION
-===================================================== */
-
-async function checkEditorSession() {
-
-    const login =
-        document.getElementById(
-            "editorLogin"
-        );
-
-    const panel =
-        document.getElementById(
-            "editorPanel"
-        );
-
-    if (!login || !panel) {
-        return;
-    }
-
-
-    try {
-
-        const {
-            data,
-            error
-        } =
-            await supabaseClient.auth
-                .getSession();
-
-
-        if (error) {
-
-            console.error(
-                "Unable to check authentication:",
-                error
-            );
-
-            showEditorLogin();
-
-            return;
-
-        }
-
-
-        const session =
-            data?.session;
-
-
-        if (!session) {
-
-            showEditorLogin();
-
-            return;
-
-        }
-
-
-        const authorized =
-        await isAuthorizedEditor(
-            session.user.id
-        );
-    
-    if (!authorized) {
-    
-        await supabaseClient.auth.signOut();
-    
-        showEditorLogin();
-    
-        return;
-    
-    }
-
-
-        await showEditorPanel();
+        padding-bottom: 5px;
 
     }
 
-    catch (error) {
+    .nav-link {
 
-        console.error(
-            "Editor authentication error:",
-            error
-        );
+        white-space: nowrap;
 
-        showEditorLogin();
+    }
+
+    .hero {
+
+        min-height: 420px;
+
+        padding: 50px 30px;
+
+    }
+
+    .hero h1 {
+
+        font-size: 40px;
+
+    }
+
+    .hero-buttons {
+
+        flex-wrap: wrap;
+
+    }
+
+    .section {
+
+        padding: 45px 25px;
+
+    }
+
+    .section-heading {
+
+        align-items: flex-start;
+
+        gap: 15px;
+
+        flex-direction: column;
+
+    }
+
+    .page {
+
+        padding: 40px 20px;
+
+    }
+
+    .page-header h1 {
+
+        font-size: 34px;
+
+    }
+
+    .department-profile {
+
+        flex-direction: column;
+
+        align-items: flex-start;
+
+    }
+
+    .department-profile h1 {
+
+        font-size: 32px;
+
+    }
+
+    footer {
+
+        padding: 25px;
+
+        flex-direction: column;
+
+        gap: 10px;
 
     }
 
 }
 
 
-/* =====================================================
-   SHOW EDITOR LOGIN
-===================================================== */
+@media (max-width: 600px) {
 
-function showEditorLogin() {
+    .statistics-grid {
 
-    const login =
-        document.getElementById(
-            "editorLogin"
-        );
+        grid-template-columns: 1fr;
 
-    const panel =
-        document.getElementById(
-            "editorPanel"
-        );
-
-    if (!login || !panel) {
-        return;
     }
 
-    panel.classList.add("hidden");
+}
 
-    login.classList.remove("hidden");
+/* =====================================================
+   LOGIN SYSTEM
+===================================================== */
+
+.login-container {
+
+    min-height: 650px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+}
+
+
+.login-card {
+
+    width: 100%;
+
+    max-width: 440px;
+
+    padding: 40px;
+
+    background: #171920;
+
+    border: 1px solid #292c35;
+
+    border-radius: 15px;
+
+    text-align: center;
+
+    box-shadow:
+        0 20px 50px
+        rgba(0, 0, 0, 0.25);
+
+}
+
+
+.login-logo {
+
+    width: 75px;
+
+    height: 75px;
+
+    object-fit: contain;
+
+    margin-bottom: 25px;
+
+}
+
+
+.login-card h1 {
+
+    font-size: 32px;
+
+    margin-bottom: 12px;
+
+}
+
+
+.login-card > p:not(.section-label) {
+
+    color: #858b98;
+
+    font-size: 13px;
+
+    line-height: 1.6;
+
+    margin-bottom: 25px;
+
+}
+
+
+.login-card form {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 12px;
+
+}
+
+
+.login-card input {
+
+    width: 100%;
+
+    padding: 14px 15px;
+
+    background: #22252e;
+
+    color: white;
+
+    border: 1px solid #343844;
+
+    border-radius: 8px;
+
+    outline: none;
+
+    font-size: 14px;
+
+}
+
+
+.login-card input:focus {
+
+    border-color: #5865f2;
+
+}
+
+
+.login-button {
+
+    width: 100%;
+
+    padding: 14px;
+
+    border: none;
+
+    border-radius: 8px;
+
+    background: #b58a28;
+
+    color: #111;
+
+    font-weight: 800;
+
+    cursor: pointer;
+
+    transition: 0.2s;
+
+}
+
+
+.login-button:hover {
+
+    filter: brightness(1.1);
+
+    transform: translateY(-1px);
+
+}
+
+
+.login-error {
+
+    color: #e05252;
+
+    font-size: 12px;
+
+    min-height: 16px;
 
 }
 
 
 /* =====================================================
-   DISPLAY EDITOR STAFF
+   PANEL
 ===================================================== */
 
-function displayEditorStaff() {
+.hidden {
 
-    const container =
-        document.getElementById(
-            "editorStaffList"
-        );
+    display: none !important;
 
-    if (!container) {
-        return;
+}
+
+
+.panel-content {
+
+    width: 100%;
+
+}
+
+
+.panel-toolbar {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    padding: 15px 18px;
+
+    margin-bottom: 25px;
+
+    background: #171920;
+
+    border: 1px solid #292c35;
+
+    border-radius: 10px;
+
+    color: #858b98;
+
+    font-size: 13px;
+
+}
+
+
+.logout-button {
+
+    padding: 9px 15px;
+
+    background: #292d38;
+
+    color: white;
+
+    border: none;
+
+    border-radius: 7px;
+
+    cursor: pointer;
+
+    font-weight: 600;
+
+}
+
+
+.logout-button:hover {
+
+    background: #941f28;
+
+}
+
+/* =====================================================
+   ADMIN MANAGEMENT
+===================================================== */
+
+.management-section {
+
+    margin-bottom: 45px;
+
+    background: #171920;
+
+    border: 1px solid #292c35;
+
+    border-radius: 13px;
+
+    overflow: hidden;
+
+}
+
+
+.management-header {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 20px;
+
+    padding: 25px;
+
+    border-bottom: 1px solid #292c35;
+
+}
+
+
+.management-header h2 {
+
+    font-size: 24px;
+
+    margin-bottom: 7px;
+
+}
+
+
+.management-header p:last-child {
+
+    color: #858b98;
+
+    font-size: 13px;
+
+}
+
+
+.management-add-button {
+
+    padding: 11px 17px;
+
+    background: #b58a28;
+
+    color: #111;
+
+    border: none;
+
+    border-radius: 7px;
+
+    font-weight: 800;
+
+    cursor: pointer;
+
+    white-space: nowrap;
+
+}
+
+
+.management-add-button:hover {
+
+    filter: brightness(1.1);
+
+}
+
+
+.management-list {
+
+    padding: 8px 20px;
+
+}
+
+
+.management-item {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 20px;
+
+    padding: 17px 5px;
+
+    border-bottom: 1px solid #242730;
+
+}
+
+
+.management-item:last-child {
+
+    border-bottom: none;
+
+}
+
+
+.management-name {
+
+    font-size: 14px;
+
+    font-weight: 700;
+
+}
+
+
+.management-actions {
+
+    display: flex;
+
+    gap: 8px;
+
+}
+
+
+.management-button {
+
+    padding: 8px 12px;
+
+    border: none;
+
+    border-radius: 6px;
+
+    background: #292d38;
+
+    color: white;
+
+    cursor: pointer;
+
+    font-size: 12px;
+
+    font-weight: 600;
+
+}
+
+
+.management-button:hover {
+
+    background: #3a3e4a;
+
+}
+
+
+.management-button.delete:hover {
+
+    background: #941f28;
+
+}
+
+
+.management-empty {
+
+    padding: 30px;
+
+    text-align: center;
+
+    color: #686e7a;
+
+}
+
+
+@media (max-width: 700px) {
+
+    .management-header {
+
+        align-items: flex-start;
+
+        flex-direction: column;
+
     }
 
 
-    const search =
-        document.getElementById(
-            "editorStaffSearch"
-        )?.value
-        ?.toLowerCase()
-        || "";
+    .management-item {
 
+        align-items: flex-start;
 
-    const filtered =
-        staffDatabase.filter(
-            member =>
-                member.username
-                    .toLowerCase()
-                    .includes(search)
-        );
-
-
-    container.innerHTML = "";
-
-
-    if (
-        filtered.length === 0
-    ) {
-
-        container.innerHTML = `
-
-            <div class="editor-empty">
-
-                No staff members found.
-
-            </div>
-
-        `;
-
-        return;
+        flex-direction: column;
 
     }
 
+}
 
-    filtered.forEach(
-        member => {
+/* =====================================================
+   STAFF MANAGEMENT
+===================================================== */
 
-            const service =
-                calculateServiceDays(
-                    member.startDate,
-                    member.endDate
-                );
+.staff-management-search {
 
+    padding: 18px 20px;
 
-            const item =
-                document.createElement(
-                    "div"
-                );
+    border-bottom: 1px solid #292c35;
+
+}
 
 
-            item.className =
-                "editor-staff-item";
+.staff-management-search input {
+
+    width: 100%;
+
+    max-width: 400px;
+
+    padding: 12px 14px;
+
+    background: #22252e;
+
+    color: white;
+
+    border: 1px solid #343844;
+
+    border-radius: 8px;
+
+    outline: none;
+
+}
 
 
-            item.innerHTML = `
+.editor-staff-list {
 
-                <div>
+    padding: 10px 20px;
 
-                    <div class="editor-staff-username">
-
-                        ${escapeHTML(
-                            member.username
-                        )}
-
-                    </div>
-
-                </div>
+}
 
 
-                <div class="editor-staff-detail">
+.editor-staff-item {
 
-                    ${escapeHTML(
-                        member.rank
-                    )}
+    display: grid;
 
-                </div>
+    grid-template-columns:
+        1.5fr
+        1fr
+        1fr
+        1.2fr
+        1fr
+        1fr
+        auto;
 
+    align-items: center;
 
-                        <div class="editor-staff-detail">
+    gap: 15px;
 
-                    <span
-                        class="staff-status"
-                        style="background:${escapeHTML(getStatusColor(member.status))}33; color:${escapeHTML(getStatusColor(member.status))};"
-                    >
+    padding: 17px 5px;
 
-                        ${escapeHTML(member.status)}
+    border-bottom: 1px solid #242730;
 
-                    </span>
-
-                </div>
-
-
-                <div class="editor-staff-detail">
-
-                    ${escapeHTML(
-                        member.department
-                    )}
-
-                </div>
+}
 
 
-                <div class="editor-staff-detail">
+.editor-staff-item:last-child {
 
-                    ${formatDate(
-                        member.startDate
-                    )}
+    border-bottom: none;
 
-                </div>
+}
 
 
-                <div class="editor-staff-detail">
+.editor-staff-username {
 
-                    ${
-                        member.endDate
-                            ? formatDate(
-                                member.endDate
-                            )
-                            : "Current"
-                    }
+    font-weight: 700;
 
-                </div>
+}
 
 
-                <div class="editor-staff-service">
+.editor-staff-detail {
 
-                    ${service} Days
+    color: #858b98;
 
-                </div>
+    font-size: 12px;
 
-
-                <div class="editor-staff-actions">
-
-                    <button
-                        class="editor-action-button"
-                        onclick="editStaffMember('${member.id}')"
-                    >
-                        Edit
-                    </button>
+}
 
 
-                    <button
-                        class="editor-action-button delete"
-                        onclick="deleteStaffMember('${member.id}')"
-                    >
-                        Delete
-                    </button>
+.editor-staff-service {
 
-                </div>
+    color: #b58a28;
 
-            `;
+    font-weight: 700;
+
+    font-size: 12px;
+
+}
 
 
-            container.appendChild(item);
+.editor-staff-actions {
 
-        }
-    );
+    display: flex;
+
+    gap: 6px;
+
+}
+
+
+.editor-action-button {
+
+    padding: 8px 10px;
+
+    background: #292d38;
+
+    color: white;
+
+    border: none;
+
+    border-radius: 6px;
+
+    cursor: pointer;
+
+    font-size: 11px;
+
+    font-weight: 700;
+
+}
+
+
+.editor-action-button:hover {
+
+    background: #3a3e4a;
+
+}
+
+
+.editor-action-button.delete:hover {
+
+    background: #941f28;
+
+}
+
+
+.editor-empty {
+
+    padding: 50px 20px;
+
+    text-align: center;
+
+    color: #686e7a;
 
 }
 
 
 /* =====================================================
-   STAFF FORM OPTIONS
+   MODAL
 ===================================================== */
 
-function populateStaffFormOptions() {
+.modal-overlay {
 
-    const rank =
-        document.getElementById(
-            "staffRank"
-        );
+    position: fixed;
 
-    const status =
-        document.getElementById(
-            "staffStatus"
-        );
+    inset: 0;
 
-    const department =
-        document.getElementById(
-            "staffDepartment"
-        );
+    background:
+        rgba(0, 0, 0, 0.75);
 
+    display: flex;
 
-    if (!rank || !status || !department) {
-        return;
-    }
+    align-items: center;
 
+    justify-content: center;
 
-    rank.innerHTML = "";
+    padding: 20px;
 
-    status.innerHTML = "";
+    z-index: 2000;
 
-    department.innerHTML = "";
+}
 
 
-    rankDatabase.forEach(value => {
+.staff-form-modal {
 
-        const option =
-            document.createElement("option");
+    width: 100%;
 
-        option.value = value.name;
-        option.textContent = value.name;
+    max-width: 560px;
 
-        rank.appendChild(option);
+    max-height: 90vh;
 
-    });
+    overflow-y: auto;
 
+    background: #171920;
 
-    statusDatabase.forEach(
-        value => {
+    border: 1px solid #343844;
 
-            const option =
-                document.createElement("option");
+    border-radius: 14px;
 
-            option.value = value.name;
-            option.textContent = value.name;
+    box-shadow:
+        0 25px 70px
+        rgba(0, 0, 0, 0.5);
 
-            status.appendChild(option);
-
-        }
-    );
+}
 
 
-    departmentDatabase.forEach(
-        departmentData => {
+.modal-header {
 
-            const option =
-                document.createElement(
-                    "option"
-                );
+    display: flex;
 
-            option.value =
-                departmentData.name;
+    justify-content: space-between;
 
-            option.textContent =
-                departmentData.name;
+    align-items: flex-start;
 
-            department.appendChild(option);
+    padding: 25px;
 
-        }
-    );
+    border-bottom: 1px solid #292c35;
+
+}
+
+
+.modal-header h2 {
+
+    font-size: 23px;
+
+}
+
+
+.modal-close {
+
+    width: 34px;
+
+    height: 34px;
+
+    border: none;
+
+    border-radius: 7px;
+
+    background: #292d38;
+
+    color: white;
+
+    font-size: 22px;
+
+    cursor: pointer;
+
+}
+
+
+.modal-close:hover {
+
+    background: #941f28;
 
 }
 
 
 /* =====================================================
-   STAFF FORM
+   FORM
 ===================================================== */
 
-let editingStaffId = null;
+#staffForm {
 
-
-function openStaffForm(
-    staffId = null
-) {
-
-    const modal =
-        document.getElementById(
-            "staffFormModal"
-        );
-
-    const form =
-        document.getElementById(
-            "staffForm"
-        );
-
-
-    if (!modal || !form) {
-        return;
-    }
-
-
-    populateStaffFormOptions();
-
-    editingStaffId =
-        staffId;
-
-    form.reset();
-
-
-    if (staffId !== null) {
-
-        const member =
-            staffDatabase.find(
-                item =>
-                    String(item.id) ===
-                    String(staffId)
-            );
-
-
-        if (!member) {
-
-            alert(
-                "Staff member could not be found."
-            );
-
-            return;
-
-        }
-
-
-        document.getElementById(
-            "staffFormTitle"
-        ).textContent =
-            "Edit Staff Member";
-
-
-        document.getElementById(
-            "staffUsername"
-        ).value =
-            member.username;
-
-
-        document.getElementById(
-            "staffAvatarUrl"
-        ).value =
-            member.avatarUrl || "";
-
-
-        document.getElementById(
-            "staffRank"
-        ).value =
-            member.rank;
-
-
-        document.getElementById(
-            "staffStatus"
-        ).value =
-            member.status;
-
-
-        document.getElementById(
-            "staffDepartment"
-        ).value =
-            member.department;
-
-
-        document.getElementById(
-            "staffStartDate"
-        ).value =
-            member.startDate;
-
-
-        document.getElementById(
-            "staffEndDate"
-        ).value =
-            member.endDate || "";
-
-
-        updateServicePreview();
-
-        updateStaffAvatarPreview();
-
-    }
-
-    else {
-
-        document.getElementById(
-            "staffFormTitle"
-        ).textContent =
-            "Add Staff Member";
-
-        updateServicePreview();
-
-        updateStaffAvatarPreview();
-
-    }
-
-
-    modal.classList.remove("hidden");
+    padding: 25px;
 
 }
 
 
-/* =====================================================
-   CLOSE STAFF FORM
-===================================================== */
+.form-group {
 
-function closeStaffForm() {
-
-    const modal =
-        document.getElementById(
-            "staffFormModal"
-        );
-
-    if (!modal) {
-        return;
-    }
-
-    modal.classList.add("hidden");
-
-    editingStaffId =
-        null;
+    margin-bottom: 18px;
 
 }
 
 
-/* =====================================================
-   SAVE STAFF MEMBER
-===================================================== */
+.form-group label {
 
-function setupStaffForm() {
+    display: block;
 
-    const staffForm =
-        document.getElementById(
-            "staffForm"
-        );
+    color: #c7cad2;
 
-    if (!staffForm) {
-        return;
-    }
+    font-size: 12px;
 
+    font-weight: 700;
 
-    staffForm.addEventListener(
-        "submit",
-        async function (event) {
-
-            event.preventDefault();
-
-
-            const username =
-                document.getElementById(
-                    "staffUsername"
-                ).value.trim();
-
-            const rank =
-                document.getElementById(
-                    "staffRank"
-                ).value;
-
-            const status =
-                document.getElementById(
-                    "staffStatus"
-                ).value;
-
-            const department =
-                document.getElementById(
-                    "staffDepartment"
-                ).value;
-
-            const avatarUrl =
-                document.getElementById(
-                    "staffAvatarUrl"
-                )?.value
-                ?.trim()
-                || "";
-
-            const startDate =
-                document.getElementById(
-                    "staffStartDate"
-                ).value;
-
-            const endDate =
-                document.getElementById(
-                    "staffEndDate"
-                ).value;
-
-
-            if (!username) {
-
-                alert(
-                    "Please enter a Roblox username."
-                );
-
-                return;
-
-            }
-
-
-            if (!rank) {
-
-                alert(
-                    "Please select a rank."
-                );
-
-                return;
-
-            }
-
-
-            if (!status) {
-
-                alert(
-                    "Please select a status."
-                );
-
-                return;
-
-            }
-
-
-            if (!department) {
-
-                alert(
-                    "Please select a department."
-                );
-
-                return;
-
-            }
-
-
-            if (!startDate) {
-
-                alert(
-                    "Please enter a start date."
-                );
-
-                return;
-
-            }
-
-
-            if (
-                endDate &&
-                endDate < startDate
-            ) {
-
-                alert(
-                    "The end date cannot be before the start date."
-                );
-
-                return;
-
-            }
-
-
-            const saveButton =
-                staffForm.querySelector(
-                    "button[type='submit']"
-                );
-
-
-            if (saveButton) {
-
-                saveButton.disabled = true;
-
-                saveButton.textContent =
-                    "Saving...";
-
-            }
-
-
-            try {
-
-                if (
-                    editingStaffId !== null
-                ) {
-
-                    const {
-                        data,
-                        error
-                    } =
-                        await supabaseClient
-                            .from("staff")
-                            .update({
-
-                                username:
-                                    username,
-
-                                rank:
-                                    rank,
-
-                                status:
-                                    status,
-
-                                department:
-                                    department,
-
-                                avatar_url:
-                                    avatarUrl || null,
-
-                                start_date:
-                                    startDate,
-
-                                end_date:
-                                    endDate || null,
-
-                                updated_at:
-                                    new Date().toISOString()
-
-                            })
-                            .eq(
-                                "id",
-                                editingStaffId
-                            )
-                            .select()
-                            .single();
-
-
-                    if (error) {
-
-                        alert(
-                            "Unable to update staff member:\n\n" +
-                            error.message
-                        );
-
-                        return;
-
-                    }
-
-
-                    if (data) {
-
-                        const index =
-                            staffDatabase.findIndex(
-                                member =>
-                                    String(member.id) ===
-                                    String(editingStaffId)
-                            );
-
-
-                        if (index !== -1) {
-
-                            staffDatabase[index] = {
-
-                                id:
-                                    data.id,
-
-                                username:
-                                    data.username || "",
-
-                                rank:
-                                    data.rank || "",
-
-                                status:
-                                    data.status || "",
-
-                                department:
-                                    data.department || "",
-
-                                avatarUrl:
-                                    data.avatar_url || "",
-
-                                startDate:
-                                    data.start_date || "",
-
-                                endDate:
-                                    data.end_date || ""
-
-                            };
-
-                        }
-
-                    }
-
-                }
-
-                else {
-
-                    const {
-                        data,
-                        error
-                    } =
-                        await supabaseClient
-                            .from("staff")
-                            .insert({
-
-                                username:
-                                    username,
-
-                                rank:
-                                    rank,
-
-                                status:
-                                    status,
-
-                                department:
-                                    department,
-
-                                avatar_url:
-                                    avatarUrl || null,
-
-                                start_date:
-                                    startDate,
-
-                                end_date:
-                                    endDate || null
-
-                            })
-                            .select()
-                            .single();
-
-
-                    if (error) {
-
-                        alert(
-                            "Unable to add staff member:\n\n" +
-                            error.message
-                        );
-
-                        return;
-
-                    }
-
-
-                    if (data) {
-
-                        staffDatabase.push({
-
-                            id:
-                                data.id,
-
-                            username:
-                                data.username || "",
-
-                            rank:
-                                data.rank || "",
-
-                            status:
-                                data.status || "",
-
-                            department:
-                                data.department || "",
-
-                            avatarUrl:
-                                data.avatar_url || "",
-
-                            startDate:
-                                data.start_date || "",
-
-                            endDate:
-                                data.end_date || ""
-
-                        });
-
-                    }
-
-                }
-
-
-                closeStaffForm();
-
-                displayEditorStaff();
-
-                updateStatistics();
-
-                displayStaff();
-
-
-                alert(
-                    "Staff member saved successfully."
-                );
-
-            }
-
-            catch (error) {
-
-                console.error(error);
-
-                alert(
-                    "An unexpected error occurred while saving."
-                );
-
-            }
-
-            finally {
-
-                if (saveButton) {
-
-                    saveButton.disabled = false;
-
-                    saveButton.textContent =
-                        "Save Staff Member";
-
-                }
-
-            }
-
-        }
-    );
+    margin-bottom: 7px;
 
 }
 
 
-/* =====================================================
-   EDIT STAFF
-===================================================== */
+.form-group input,
 
-function editStaffMember(id) {
+.form-group select {
 
-    openStaffForm(id);
+    width: 100%;
+
+    padding: 12px 13px;
+
+    background: #22252e;
+
+    color: white;
+
+    border: 1px solid #343844;
+
+    border-radius: 8px;
+
+    outline: none;
 
 }
 
 
-/* =====================================================
-   DELETE STAFF
-===================================================== */
+.form-group input:focus,
 
-async function deleteStaffMember(id) {
+.form-group select:focus {
 
-    const member =
-        staffDatabase.find(
-            item =>
-                String(item.id) ===
-                String(id)
-        );
+    border-color: #5865f2;
+
+}
 
 
-    if (!member) {
-        return;
-    }
+.form-group small {
 
+    display: block;
 
-    const confirmed =
-        confirm(
-            `Are you sure you want to permanently remove ${member.username} from the database?`
-        );
+    margin-top: 6px;
 
+    color: #686e7a;
 
-    if (!confirmed) {
-        return;
-    }
-
-
-    try {
-
-        const {
-            error
-        } =
-            await supabaseClient
-                .from("staff")
-                .delete()
-                .eq("id", id);
-
-
-        if (error) {
-
-            alert(
-                "Unable to delete staff member:\n\n" +
-                error.message
-            );
-
-            return;
-
-        }
-
-
-        staffDatabase =
-            staffDatabase.filter(
-                item =>
-                    String(item.id) !==
-                    String(id)
-            );
-
-
-        displayEditorStaff();
-
-        updateStatistics();
-
-        displayStaff();
-
-
-        alert(
-            "Staff member deleted successfully."
-        );
-
-    }
-
-    catch (error) {
-
-        console.error(error);
-
-        alert(
-            "An unexpected error occurred while deleting the staff member."
-        );
-
-    }
+    font-size: 11px;
 
 }
 
@@ -2199,4533 +2233,151 @@ async function deleteStaffMember(id) {
    SERVICE PREVIEW
 ===================================================== */
 
-function updateServicePreview() {
+.service-preview {
 
-    const start =
-        document.getElementById(
-            "staffStartDate"
-        )?.value;
+    display: flex;
 
-    const end =
-        document.getElementById(
-            "staffEndDate"
-        )?.value;
+    justify-content: space-between;
 
-    const preview =
-        document.getElementById(
-            "serviceLengthPreview"
-        );
+    align-items: center;
 
+    padding: 15px;
 
-    if (!preview) {
-        return;
-    }
+    margin-bottom: 20px;
+
+    background: #20232b;
+
+    border: 1px solid #30333c;
+
+    border-radius: 8px;
+
+}
 
 
-    preview.textContent =
-        `${calculateServiceDays(start, end)} Days`;
+.service-preview span {
+
+    color: #858b98;
+
+    font-size: 12px;
+
+}
+
+
+.service-preview strong {
+
+    color: #b58a28;
 
 }
 
 
 /* =====================================================
-   DEPARTMENT EDITOR
+   MODAL BUTTONS
 ===================================================== */
 
-let editingDepartmentId = null;
+.modal-buttons {
+
+    display: flex;
+
+    justify-content: flex-end;
+
+    gap: 10px;
+
+    padding-top: 5px;
+
+}
 
 
-/* =====================================================
-   DISPLAY DEPARTMENT MANAGEMENT
-===================================================== */
+.cancel-button,
 
-function displayDepartmentManagement() {
+.save-button {
 
-    const container =
-        document.getElementById(
-            "departmentManagementList"
-        );
+    padding: 11px 16px;
 
+    border: none;
 
-    if (!container) {
-        return;
-    }
+    border-radius: 7px;
 
+    cursor: pointer;
 
-    container.innerHTML = "";
+    font-weight: 700;
+
+}
 
 
-    if (
-        departmentDatabase.length === 0
-    ) {
+.cancel-button {
 
-        container.innerHTML = `
+    background: #292d38;
 
-            <div class="management-empty">
+    color: white;
 
-                No departments have been created.
-
-            </div>
-
-        `;
-
-        return;
-
-    }
+}
 
 
-    departmentDatabase.forEach(
-        department => {
+.cancel-button:hover {
 
-            const item =
-                document.createElement(
-                    "div"
-                );
+    background: #3a3e4a;
+
+}
 
 
-            item.className =
-                "management-item";
+.save-button {
+
+    background: #b58a28;
+
+    color: #111;
+
+}
 
 
-            const logo =
-                getSafeLogoUrl(
-                    department.logoUrl
-                );
+.save-button:hover {
 
-
-            item.innerHTML = `
-
-                ${
-                    logo
-                        ? `
-                            <img
-                                src="${escapeHTML(logo)}"
-                                alt=""
-                                style="
-                                    width:48px;
-                                    height:48px;
-                                    object-fit:contain;
-                                    border-radius:8px;
-                                    margin-right:12px;
-                                "
-                            >
-                        `
-                        : ""
-                }
-
-
-                <span class="management-name">
-
-                    ${escapeHTML(
-                        department.name
-                    )}
-
-                </span>
-
-
-                <div class="management-actions">
-
-                    <button
-                        class="management-button"
-                        onclick="editDepartment('${department.id}')"
-                    >
-                        Edit
-                    </button>
-
-
-                    <button
-                        class="management-button delete"
-                        onclick="removeDepartment('${department.id}')"
-                    >
-                        Remove
-                    </button>
-
-                </div>
-
-            `;
-
-
-            container.appendChild(item);
-
-        }
-    );
+    filter: brightness(1.1);
 
 }
 
 
 /* =====================================================
-   OPEN DEPARTMENT EDITOR
+   MOBILE
 ===================================================== */
 
-function openDepartmentEditor(
-    departmentId = null
-) {
+@media (max-width: 900px) {
 
-    const modal =
-        document.getElementById(
-            "departmentEditorModal"
-        );
+    .editor-staff-item {
 
+        grid-template-columns:
+            1fr
+            1fr;
 
-    if (!modal) {
+        gap: 8px;
 
-        alert(
-            "Department editor could not be found."
-        );
-
-        return;
+        padding: 20px 5px;
 
     }
 
+    .editor-staff-actions {
 
-    editingDepartmentId =
-        departmentId;
+        grid-column: 1 / -1;
 
+        margin-top: 5px;
 
-    const form =
-        document.getElementById(
-            "departmentForm"
-        );
-
-
-    if (form) {
-        form.reset();
-    }
-
-
-    if (
-        departmentId !== null
-    ) {
-
-        const department =
-            departmentDatabase.find(
-                item =>
-                    String(item.id) ===
-                    String(departmentId)
-            );
-
-
-        if (!department) {
-
-            alert(
-                "Department could not be found."
-            );
-
-            return;
-
-        }
-
-
-        document.getElementById(
-            "departmentEditorTitle"
-        ).textContent =
-            "Edit Department";
-
-
-        document.getElementById(
-            "departmentName"
-        ).value =
-            department.name;
-
-
-        document.getElementById(
-            "departmentLogo"
-        ).value =
-            department.logoUrl;
-
-
-        document.getElementById(
-            "departmentDescription"
-        ).value =
-            department.description;
-
-
-        document.getElementById(
-            "departmentHead"
-        ).value =
-            department.head;
-
-
-        document.getElementById(
-            "departmentSeniorStaff"
-        ).value =
-            department.seniorStaff;
-
-
-    }
-
-    else {
-
-        document.getElementById(
-            "departmentEditorTitle"
-        ).textContent =
-            "Add Department";
-
-    }
-
-
-    updateDepartmentLogoPreview();
-
-    modal.classList.remove("hidden");
-
-}
-
-
-/* =====================================================
-   COMPATIBILITY FUNCTION
-===================================================== */
-
-function openDepartmentForm(
-    departmentId = null
-) {
-
-    openDepartmentEditor(
-        departmentId
-    );
-
-}
-
-
-/* =====================================================
-   CLOSE DEPARTMENT EDITOR
-===================================================== */
-
-function closeDepartmentEditor() {
-
-    const modal =
-        document.getElementById(
-            "departmentEditorModal"
-        );
-
-
-    if (!modal) {
-        return;
-    }
-
-    modal.classList.add("hidden");
-
-    editingDepartmentId =
-        null;
-
-}
-
-
-/* =====================================================
-   COMPATIBILITY FUNCTION
-===================================================== */
-
-function closeDepartmentForm() {
-
-    closeDepartmentEditor();
-
-}
-
-
-/* =====================================================
-   DEPARTMENT LOGO PREVIEW
-===================================================== */
-
-function updateDepartmentLogoPreview() {
-
-    const input =
-        document.getElementById(
-            "departmentLogo"
-        );
-
-    const preview =
-        document.getElementById(
-            "departmentLogoPreview"
-        );
-
-
-    if (!input || !preview) {
-        return;
-    }
-
-
-    const url =
-        getSafeLogoUrl(
-            input.value.trim()
-        );
-
-
-    if (!url) {
-
-        preview.innerHTML = `
-
-            <span>
-                No Logo
-            </span>
-
-        `;
-
-        return;
-
-    }
-
-
-    preview.innerHTML = `
-
-        <img
-            src="${escapeHTML(url)}"
-            alt="Department Logo Preview"
-            style="
-                width:100%;
-                height:100%;
-                object-fit:contain;
-                border-radius:inherit;
-            "
-        >
-
-    `;
-
-
-    const image =
-        preview.querySelector("img");
-
-
-    if (image) {
-
-        image.onerror =
-            function () {
-
-                preview.innerHTML = `
-
-                    <span>
-                        Unable to load logo
-                    </span>
-
-                `;
-
-            };
-
-    }
-
-}
-
-
-/* =====================================================
-   STAFF AVATAR PREVIEW
-===================================================== */
-
-function updateStaffAvatarPreview() {
-
-    const input = document.getElementById("staffAvatarUrl");
-    const preview = document.getElementById("staffAvatarPreview");
-
-    if (!input || !preview) return;
-
-    const url = getSafeLogoUrl(input.value.trim());
-
-    if (!url) {
-        preview.innerHTML = `<span>No Picture</span>`;
-        return;
-    }
-
-    preview.innerHTML = `
-        <img
-            src="${escapeHTML(url)}"
-            alt="Profile Picture Preview"
-            style="width:100%; height:100%; object-fit:cover; border-radius:inherit;"
-        >
-    `;
-
-    const avatarImage = preview.querySelector("img");
-
-    if (avatarImage) {
-        avatarImage.onerror = function () {
-            preview.innerHTML = `<span>Unable to load image</span>`;
-        };
-    }
-
-}
-
-
-/* =====================================================
-   SAVE DEPARTMENT
-===================================================== */
-
-function setupDepartmentForm() {
-
-    const departmentForm =
-        document.getElementById(
-            "departmentForm"
-        );
-
-
-    if (!departmentForm) {
-        return;
-    }
-
-
-    departmentForm.addEventListener(
-        "submit",
-        async function (event) {
-
-            event.preventDefault();
-
-
-            const name =
-                document.getElementById(
-                    "departmentName"
-                )?.value
-                ?.trim();
-
-
-            const description =
-                document.getElementById(
-                    "departmentDescription"
-                )?.value
-                ?.trim()
-                || "";
-
-
-            const logoUrl =
-                document.getElementById(
-                    "departmentLogo"
-                )?.value
-                ?.trim()
-                || "";
-
-
-            const head =
-                document.getElementById(
-                    "departmentHead"
-                )?.value
-                ?.trim()
-                || "";
-
-
-            const seniorStaff =
-                document.getElementById(
-                    "departmentSeniorStaff"
-                )?.value
-                ?.trim()
-                || "";
-
-
-            if (!name) {
-
-                alert(
-                    "Please enter a department name."
-                );
-
-                return;
-
-            }
-
-
-            if (
-                logoUrl &&
-                !getSafeLogoUrl(logoUrl)
-            ) {
-
-                alert(
-                    "Please enter a valid image URL beginning with http:// or https://."
-                );
-
-                return;
-
-            }
-
-
-            const saveButton =
-                departmentForm.querySelector(
-                    "button[type='submit']"
-                );
-
-
-            if (saveButton) {
-
-                saveButton.disabled = true;
-
-                saveButton.textContent =
-                    "Saving...";
-
-            }
-
-
-            try {
-
-                if (
-                    editingDepartmentId !== null
-                ) {
-
-                    const {
-                        data,
-                        error
-                    } =
-                        await supabaseClient
-                            .from("departments")
-                            .update({
-
-                                name:
-                                    name,
-
-                                description:
-                                    description,
-
-                                logo_url:
-                                    logoUrl || null,
-
-                                head:
-                                    head || null,
-
-                                senior_staff:
-                                    seniorStaff || null,
-
-                                updated_at:
-                                    new Date().toISOString()
-
-                            })
-                            .eq(
-                                "id",
-                                editingDepartmentId
-                            )
-                            .select()
-                            .single();
-
-
-                    if (error) {
-
-                        alert(
-                            "Unable to update department:\n\n" +
-                            error.message
-                        );
-
-                        return;
-
-                    }
-
-
-                    if (data) {
-
-                        const index =
-                            departmentDatabase.findIndex(
-                                department =>
-                                    String(department.id) ===
-                                    String(editingDepartmentId)
-                            );
-
-
-                        if (index !== -1) {
-
-                            departmentDatabase[index] =
-                                mapDepartment(data);
-
-                        }
-
-                    }
-
-                }
-
-                else {
-
-                    const {
-                        data,
-                        error
-                    } =
-                        await supabaseClient
-                            .from("departments")
-                            .insert({
-
-                                name:
-                                    name,
-
-                                description:
-                                    description,
-
-                                logo_url:
-                                    logoUrl || null,
-
-                                head:
-                                    head || null,
-
-                                senior_staff:
-                                    seniorStaff || null
-
-                            })
-                            .select()
-                            .single();
-
-
-                    if (error) {
-
-                        alert(
-                            "Unable to add department:\n\n" +
-                            error.message
-                        );
-
-                        return;
-
-                    }
-
-
-                    if (data) {
-
-                        departmentDatabase.push(
-                            mapDepartment(data)
-                        );
-
-                    }
-
-                }
-
-
-                closeDepartmentEditor();
-
-
-                populateStaffFormOptions();
-
-                loadFilterOptions();
-
-                displayDepartmentManagement();
-
-                displayHomepageDepartments();
-
-                displayDepartmentPage();
-
-
-                alert(
-                    "Department saved successfully."
-                );
-
-            }
-
-            catch (error) {
-
-                console.error(error);
-
-                alert(
-                    "An unexpected error occurred while saving the department."
-                );
-
-            }
-
-            finally {
-
-                if (saveButton) {
-
-                    saveButton.disabled = false;
-
-                    saveButton.textContent =
-                        "Save Department";
-
-                }
-
-            }
-
-        }
-    );
-
-}
-
-
-/* =====================================================
-   EDIT DEPARTMENT
-===================================================== */
-
-function editDepartment(id) {
-
-    openDepartmentEditor(id);
-
-}
-
-
-/* =====================================================
-   REMOVE DEPARTMENT
-===================================================== */
-
-async function removeDepartment(id) {
-
-    const department =
-        departmentDatabase.find(
-            item =>
-                String(item.id) ===
-                String(id)
-        );
-
-
-    if (!department) {
-        return;
-    }
-
-
-    const confirmed =
-        confirm(
-            `Are you sure you want to remove "${department.name}"?`
-        );
-
-
-    if (!confirmed) {
-        return;
-    }
-
-
-    try {
-
-        const {
-            error
-        } =
-            await supabaseClient
-                .from("departments")
-                .delete()
-                .eq("id", id);
-
-
-        if (error) {
-
-            alert(
-                "Unable to delete department:\n\n" +
-                error.message
-            );
-
-            return;
-
-        }
-
-
-        departmentDatabase =
-            departmentDatabase.filter(
-                item =>
-                    String(item.id) !==
-                    String(id)
-            );
-
-
-        populateStaffFormOptions();
-
-        loadFilterOptions();
-
-        displayDepartmentManagement();
-
-        displayHomepageDepartments();
-
-        displayDepartmentPage();
-
-
-        alert(
-            "Department removed successfully."
-        );
-
-    }
-
-    catch (error) {
-
-        console.error(error);
-
-        alert(
-            "An unexpected error occurred while removing the department."
-        );
-
-    }
-
-}
-
-
-/* =====================================================
-   DEPARTMENT CARD
-===================================================== */
-
-function createDepartmentCard(
-    department
-) {
-
-    const card =
-        document.createElement(
-            "div"
-        );
-
-
-    card.className =
-        "department-card";
-
-
-    card.style.cursor =
-        "pointer";
-
-
-    const logo =
-        getSafeLogoUrl(
-            department.logoUrl
-        );
-
-
-    card.innerHTML = `
-
-        ${
-            logo
-                ? `
-                    <div class="department-logo-container">
-
-                        <img
-                            src="${escapeHTML(logo)}"
-                            alt="${escapeHTML(department.name)} Logo"
-                            class="department-logo"
-                        >
-
-                    </div>
-                `
-                : `
-                    <div class="department-logo-container">
-
-                        <div class="department-logo-placeholder">
-
-                            ${escapeHTML(
-                                department.name
-                                    .charAt(0)
-                                    .toUpperCase()
-                            )}
-
-                        </div>
-
-                    </div>
-                `
-        }
-
-
-        <div class="department-card-content">
-
-            <h3>
-
-                ${escapeHTML(
-                    department.name
-                )}
-
-            </h3>
-
-
-            <p>
-
-                ${escapeHTML(
-                    department.description ||
-                    "No description provided."
-                )}
-
-            </p>
-
-
-            ${
-                department.head
-                    ? `
-                        <div class="department-detail">
-
-                            <strong>
-                                Department Head
-                            </strong>
-
-                            <span>
-                                ${escapeHTML(
-                                    department.head
-                                )}
-                            </span>
-
-                        </div>
-                    `
-                    : ""
-            }
-
-        </div>
-
-    `;
-
-
-    card.addEventListener(
-        "click",
-        function () {
-
-            window.location.href =
-                `department.html?id=${encodeURIComponent(
-                    department.id
-                )}`;
-
-        }
-    );
-
-
-    return card;
-
-}
-
-
-/* =====================================================
-   DEPARTMENT LIST PAGE
-===================================================== */
-
-function displayDepartmentPage() {
-
-    const container =
-        document.getElementById(
-            "departmentPageList"
-        );
-
-
-    if (!container) {
-        return;
-    }
-
-
-    container.innerHTML = "";
-
-
-    if (
-        departmentDatabase.length === 0
-    ) {
-
-        container.innerHTML = `
-
-            <div class="staff-empty">
-
-                <h3>
-                    No Departments Found
-                </h3>
-
-                <p>
-                    No departments have been added yet.
-                </p>
-
-            </div>
-
-        `;
-
-        return;
-
-    }
-
-
-    departmentDatabase.forEach(
-        department => {
-
-            container.appendChild(
-                createDepartmentCard(
-                    department
-                )
-            );
-
-        }
-    );
-
-}
-
-
-/* =====================================================
-   HOMEPAGE EDITORS
-===================================================== */
-async function displayHomepageEditors() {
-
-    const container = document.getElementById("editorList");
-
-    if (!container) return;
-
-    try {
-
-        const { data, error } =
-            await supabaseClient
-                .from("editors")
-                .select("id, username")
-                .order("username", { ascending: true });
-
-        if (error) {
-            console.error("Editor directory loading error:", error);
-            return;
-        }
-
-        container.innerHTML = "";
-
-        if (!data || data.length === 0) {
-
-            container.innerHTML = `
-                <div class="staff-empty">
-                    <h3>No Editors Found</h3>
-                    <p>No editor accounts have been created yet.</p>
-                </div>
-            `;
-
-            return;
-        }
-
-        data.forEach(editor => {
-
-            const displayName = editor.username || "Unnamed Editor";
-
-            const initials =
-                displayName
-                    .trim()
-                    .split(/\s+/)
-                    .map(word => word.charAt(0))
-                    .join("")
-                    .substring(0, 2)
-                    .toUpperCase();
-
-            const card = document.createElement("div");
-            card.className = "editor-card";
-
-            card.innerHTML = `
-
-                <div class="editor-avatar" style="display:flex;align-items:center;justify-content:center;font-weight:700;color:#aaa;">
-                    ${escapeHTML(initials)}
-                </div>
-
-                <div class="editor-info">
-                    <h3>${escapeHTML(displayName)}</h3>
-                    <p>Editor</p>
-                </div>
-
-            `;
-
-            container.appendChild(card);
-
-        });
-
-    } catch (error) {
-        console.error("Unexpected editor directory error:", error);
-    }
-
-}
-function displayHomepageDepartments() {
-
-    const container =
-        document.getElementById(
-            "departmentList"
-        );
-
-
-    if (!container) {
-        return;
-    }
-
-
-    container.innerHTML = "";
-
-
-    if (
-        departmentDatabase.length === 0
-    ) {
-
-        container.innerHTML = `
-
-            <div class="staff-empty">
-
-                <h3>
-                    No Departments Found
-                </h3>
-
-                <p>
-                    No departments have been added yet.
-                </p>
-
-            </div>
-
-        `;
-
-        return;
-
-    }
-
-
-    departmentDatabase
-        .forEach(
-            department => {
-
-                container.appendChild(
-                    createDepartmentCard(
-                        department
-                    )
-                );
-
-            }
-        );
-
-}
-
-
-/* =====================================================
-   INDIVIDUAL DEPARTMENT PAGE
-===================================================== */
-
-async function displayIndividualDepartment() {
-
-    const profile =
-        document.getElementById(
-            "departmentProfile"
-        );
-
-
-    if (!profile) {
-        return;
-    }
-
-
-    const params =
-        new URLSearchParams(
-            window.location.search
-        );
-
-
-    const departmentId =
-        params.get("id");
-
-
-    const nameElement =
-        document.getElementById(
-            "departmentProfileName"
-        );
-
-
-    const descriptionElement =
-        document.getElementById(
-            "departmentProfileDescription"
-        );
-
-
-    const logoElement =
-        document.getElementById(
-            "departmentProfileLogo"
-        );
-
-
-    const headContainer =
-        document.getElementById(
-            "departmentHeadContainer"
-        );
-
-
-    const seniorContainer =
-        document.getElementById(
-            "departmentSeniorStaff"
-        );
-
-
-    if (!departmentId) {
-
-        if (nameElement) {
-            nameElement.textContent =
-                "Department Not Found";
-        }
-
-        if (descriptionElement) {
-            descriptionElement.textContent =
-                "No department was specified.";
-        }
-
-        return;
-
-    }
-
-
-    const department =
-        departmentDatabase.find(
-            item =>
-                String(item.id) ===
-                String(departmentId)
-        );
-
-
-    if (!department) {
-
-        if (nameElement) {
-            nameElement.textContent =
-                "Department Not Found";
-        }
-
-        if (descriptionElement) {
-            descriptionElement.textContent =
-                "This department does not exist or has been removed.";
-        }
-
-        if (logoElement) {
-            logoElement.textContent =
-                "?";
-        }
-
-        return;
-
-    }
-
-
-    document.title =
-        `${department.name} | RTS Staff Database`;
-
-
-    if (nameElement) {
-
-        nameElement.textContent =
-            department.name;
-
-    }
-
-
-    if (descriptionElement) {
-
-        descriptionElement.textContent =
-            department.description ||
-            "No description has been provided.";
-
-    }
-
-
-    /* =================================================
-       LOGO
-    ================================================== */
-
-    if (logoElement) {
-
-        const logo =
-            getSafeLogoUrl(
-                department.logoUrl
-            );
-
-
-        if (logo) {
-
-            logoElement.innerHTML = `
-
-                <img
-                    src="${escapeHTML(logo)}"
-                    alt="${escapeHTML(department.name)} Logo"
-                    style="
-                        width:100%;
-                        height:100%;
-                        object-fit:contain;
-                        border-radius:inherit;
-                    "
-                >
-
-            `;
-
-        }
-
-        else {
-
-            logoElement.textContent =
-                department.name
-                    .charAt(0)
-                    .toUpperCase();
-
-        }
-
-    }
-
-
-    /* =================================================
-       HEAD
-    ================================================== */
-
-    if (headContainer) {
-
-        const head =
-            department.head?.trim();
-
-
-        if (head) {
-
-            const initials =
-                head
-                    .split(/\s+/)
-                    .map(
-                        word =>
-                            word.charAt(0)
-                    )
-                    .join("")
-                    .substring(0, 3)
-                    .toUpperCase();
-
-
-            headContainer.innerHTML = `
-
-                <div class="profile-avatar">
-
-                    ${escapeHTML(initials)}
-
-                </div>
-
-
-                <div>
-
-                    <h3>
-
-                        ${escapeHTML(head)}
-
-                    </h3>
-
-
-                    <p>
-
-                        Head of ${escapeHTML(
-                            department.name
-                        )}
-
-                    </p>
-
-                </div>
-
-            `;
-
-        }
-
-        else {
-
-            headContainer.innerHTML = `
-
-                <div class="profile-avatar">
-                    ?
-                </div>
-
-
-                <div>
-
-                    <h3>
-                        No Head Assigned
-                    </h3>
-
-
-                    <p>
-                        A department head has not been assigned.
-                    </p>
-
-                </div>
-
-            `;
-
-        }
-
-    }
-
-
-    /* =================================================
-       SENIOR STAFF
-    ================================================== */
-
-    if (seniorContainer) {
-
-        seniorContainer.innerHTML = "";
-
-
-        const seniorStaff =
-            department.seniorStaff
-                ?.split(/\r?\n/)
-                .map(
-                    username =>
-                        username.trim()
-                )
-                .filter(
-                    username =>
-                        username.length > 0
-                )
-                || [];
-
-
-        if (
-            seniorStaff.length === 0
-        ) {
-
-            seniorContainer.innerHTML = `
-
-                <div class="staff-empty">
-
-                    <h3>
-                        No Senior Staff
-                    </h3>
-
-                    <p>
-                        No senior staff members have been assigned.
-                    </p>
-
-                </div>
-
-            `;
-
-        }
-
-        else {
-
-            seniorStaff.forEach(
-                username => {
-
-                    const initials =
-                        username
-                            .split(/\s+/)
-                            .map(
-                                word =>
-                                    word.charAt(0)
-                            )
-                            .join("")
-                            .substring(0, 3)
-                            .toUpperCase();
-
-
-                    const card =
-                        document.createElement(
-                            "div"
-                        );
-
-
-                    card.className =
-                        "senior-card";
-
-
-                    card.innerHTML = `
-
-                        <div class="profile-avatar">
-
-                            ${escapeHTML(initials)}
-
-                        </div>
-
-
-                        <h3>
-
-                            ${escapeHTML(username)}
-
-                        </h3>
-
-
-                        <p>
-                            Senior Staff
-                        </p>
-
-                    `;
-
-
-                    seniorContainer.appendChild(
-                        card
-                    );
-
-                }
-            );
-
-        }
-
-    }
-
-}
-
-
-/* =====================================================
-   DEPARTMENT QUICK MANAGEMENT
-===================================================== */
-
-function openDepartmentManagement() {
-
-    const element =
-        document.getElementById(
-            "departmentManagementList"
-        );
-
-
-    if (element) {
-
-        element.scrollIntoView({
-            behavior: "smooth",
-            block: "center"
-        });
-
-        return;
-
-    }
-
-
-    alert(
-        "Department management could not be found on this page."
-    );
-
-}
-
-
-function openDepartmentHeads() {
-
-    const element =
-        document.getElementById(
-            "departmentManagementList"
-        );
-
-
-    if (element) {
-
-        element.scrollIntoView({
-            behavior: "smooth",
-            block: "center"
-        });
-
-
-        alert(
-            "Edit a department above to change its Department Head."
-        );
-
-        return;
-
-    }
-
-
-    alert(
-        "Department management could not be found on this page."
-    );
-
-}
-
-
-function openSeniorStaff() {
-
-    const element =
-        document.getElementById(
-            "departmentManagementList"
-        );
-
-
-    if (element) {
-
-        element.scrollIntoView({
-            behavior: "smooth",
-            block: "center"
-        });
-
-
-        alert(
-            "Edit a department above to change its Senior Staff."
-        );
-
-        return;
-
-    }
-
-
-    alert(
-        "Department management could not be found on this page."
-    );
-
-}
-
-
-/* =====================================================
-   RANK MANAGEMENT
-===================================================== */
-
-function displayRankManagement() {
-
-    const container = document.getElementById("rankManagementList");
-
-    if (!container) return;
-
-    container.innerHTML = "";
-
-    if (rankDatabase.length === 0) {
-
-        container.innerHTML = `
-            <div class="management-empty">
-                No ranks have been created.
-            </div>
-        `;
-
-        return;
-    }
-
-    rankDatabase.forEach(rank => {
-
-        const item = document.createElement("div");
-        item.className = "management-item";
-
-        item.innerHTML = `
-
-            <span class="management-name">
-                ${escapeHTML(rank.name)}
-            </span>
-
-            <div class="management-actions">
-
-                <button class="management-button" onclick="editRank('${rank.id}')">
-                    Edit
-                </button>
-
-                <button class="management-button delete" onclick="removeRank('${rank.id}')">
-                    Remove
-                </button>
-
-            </div>
-
-        `;
-
-        container.appendChild(item);
-
-    });
-
-}
-
-
-async function addRank() {
-
-    const name = prompt("Enter the name of the new rank:");
-    if (!name) return;
-
-    const cleanName = name.trim();
-    if (!cleanName) return;
-
-    const exists = rankDatabase.some(
-        rank => rank.name.toLowerCase() === cleanName.toLowerCase()
-    );
-
-    if (exists) {
-        alert("That rank already exists.");
-        return;
-    }
-
-    try {
-
-        const { data, error } =
-            await supabaseClient
-                .from("ranks")
-                .insert({ name: cleanName })
-                .select()
-                .single();
-
-        if (error) {
-            alert("Unable to add rank:\n\n" + error.message);
-            return;
-        }
-
-        rankDatabase.push({ id: data.id, name: data.name });
-
-        displayRankManagement();
-        loadFilterOptions();
-        populateStaffFormOptions();
-
-    } catch (error) {
-        console.error(error);
-        alert("An unexpected error occurred while adding the rank.");
-    }
-
-}
-
-
-async function editRank(id) {
-
-    const rank = rankDatabase.find(item => String(item.id) === String(id));
-    if (!rank) return;
-
-    const newName = prompt("Enter the new rank name:", rank.name);
-    if (!newName) return;
-
-    const cleanName = newName.trim();
-    if (!cleanName) return;
-
-    try {
-
-        const { data, error } =
-            await supabaseClient
-                .from("ranks")
-                .update({ name: cleanName })
-                .eq("id", id)
-                .select()
-                .single();
-
-        if (error) {
-            alert("Unable to update rank:\n\n" + error.message);
-            return;
-        }
-
-        rank.name = data.name;
-
-        displayRankManagement();
-        loadFilterOptions();
-        populateStaffFormOptions();
-
-    } catch (error) {
-        console.error(error);
-        alert("An unexpected error occurred while updating the rank.");
-    }
-
-}
-
-
-async function removeRank(id) {
-
-    const rank = rankDatabase.find(item => String(item.id) === String(id));
-    if (!rank) return;
-
-    const confirmed = confirm(`Are you sure you want to remove "${rank.name}"?`);
-    if (!confirmed) return;
-
-    try {
-
-        const { error } =
-            await supabaseClient
-                .from("ranks")
-                .delete()
-                .eq("id", id);
-
-        if (error) {
-            alert("Unable to delete rank:\n\n" + error.message);
-            return;
-        }
-
-        rankDatabase = rankDatabase.filter(item => String(item.id) !== String(id));
-
-        displayRankManagement();
-        loadFilterOptions();
-        populateStaffFormOptions();
-
-    } catch (error) {
-        console.error(error);
-        alert("An unexpected error occurred while removing the rank.");
-    }
-
-}
-
-
-/* =====================================================
-   STATUS MANAGEMENT
-===================================================== */
-
-function displayStatusManagement() {
-
-    const container = document.getElementById("statusManagementList");
-
-    if (!container) return;
-
-    container.innerHTML = "";
-
-    if (statusDatabase.length === 0) {
-
-        container.innerHTML = `
-            <div class="management-empty">
-                No statuses have been created.
-            </div>
-        `;
-
-        return;
-    }
-
-    statusDatabase.forEach(status => {
-
-        const item = document.createElement("div");
-        item.className = "management-item";
-
-        item.innerHTML = `
-
-            <div class="management-status-row">
-
-                <input
-                    type="color"
-                    class="status-color-input"
-                    value="${escapeHTML(status.color)}"
-                    onchange="updateStatusColor('${status.id}', this.value)"
-                >
-
-                <span class="management-name">
-                    ${escapeHTML(status.name)}
-                </span>
-
-            </div>
-
-            <div class="management-actions">
-
-                <button class="management-button" onclick="editStatus('${status.id}')">
-                    Edit
-                </button>
-
-                <button class="management-button delete" onclick="removeStatus('${status.id}')">
-                    Remove
-                </button>
-
-            </div>
-
-        `;
-
-        container.appendChild(item);
-
-    });
-
-}
-
-
-async function addStatus() {
-
-    const name = prompt("Enter the name of the new status:");
-    if (!name) return;
-
-    const cleanName = name.trim();
-    if (!cleanName) return;
-
-    const exists = statusDatabase.some(
-        status => status.name.toLowerCase() === cleanName.toLowerCase()
-    );
-
-    if (exists) {
-        alert("That status already exists.");
-        return;
-    }
-
-    try {
-
-        const { data, error } =
-            await supabaseClient
-                .from("statuses")
-                .insert({ name: cleanName, color: "#5865f2" })
-                .select()
-                .single();
-
-        if (error) {
-            alert("Unable to add status:\n\n" + error.message);
-            return;
-        }
-
-        statusDatabase.push({ id: data.id, name: data.name, color: data.color });
-
-        displayStatusManagement();
-        loadFilterOptions();
-        populateStaffFormOptions();
-
-    } catch (error) {
-        console.error(error);
-        alert("An unexpected error occurred while adding the status.");
-    }
-
-}
-
-
-async function editStatus(id) {
-
-    const status = statusDatabase.find(item => String(item.id) === String(id));
-    if (!status) return;
-
-    const newName = prompt("Enter the new status name:", status.name);
-    if (!newName) return;
-
-    const cleanName = newName.trim();
-    if (!cleanName) return;
-
-    try {
-
-        const { data, error } =
-            await supabaseClient
-                .from("statuses")
-                .update({ name: cleanName })
-                .eq("id", id)
-                .single();
-
-        if (error) {
-            alert("Unable to update status:\n\n" + error.message);
-            return;
-        }
-
-        status.name = data.name;
-
-        displayStatusManagement();
-        loadFilterOptions();
-        populateStaffFormOptions();
-        displayStaff();
-        displayEditorStaff();
-
-    } catch (error) {
-        console.error(error);
-        alert("An unexpected error occurred while updating the status.");
-    }
-
-}
-
-
-async function updateStatusColor(id, color) {
-
-    try {
-
-        const { error } =
-            await supabaseClient
-                .from("statuses")
-                .update({ color: color })
-                .eq("id", id);
-
-        if (error) {
-            alert("Unable to update color:\n\n" + error.message);
-            return;
-        }
-
-        const status = statusDatabase.find(item => String(item.id) === String(id));
-        if (status) status.color = color;
-
-        displayStaff();
-        displayEditorStaff();
-
-    } catch (error) {
-        console.error(error);
-        alert("An unexpected error occurred while updating the color.");
-    }
-
-}
-
-
-async function removeStatus(id) {
-
-    const status = statusDatabase.find(item => String(item.id) === String(id));
-    if (!status) return;
-
-    const confirmed = confirm(`Are you sure you want to remove "${status.name}"?`);
-    if (!confirmed) return;
-
-    try {
-
-        const { error } =
-            await supabaseClient
-                .from("statuses")
-                .delete()
-                .eq("id", id);
-
-        if (error) {
-            alert("Unable to delete status:\n\n" + error.message);
-            return;
-        }
-
-        statusDatabase = statusDatabase.filter(item => String(item.id) !== String(id));
-
-        displayStatusManagement();
-        loadFilterOptions();
-        populateStaffFormOptions();
-
-    } catch (error) {
-        console.error(error);
-        alert("An unexpected error occurred while removing the status.");
     }
 
 }
 
 /* =====================================================
-   EDITOR MANAGEMENT
+   STAFF DEPARTMENT LOGO
 ===================================================== */
 
-async function createEditorAccount(event) {
-
-    event.preventDefault();
-
-    const email =
-        document.getElementById(
-            "newEditorEmail"
-        )?.value
-        ?.trim();
-
-    const password =
-        document.getElementById(
-            "newEditorPassword"
-        )?.value;
-
-    const name =
-        document.getElementById(
-            "newEditorName"
-        )?.value
-        ?.trim();
-
-    const message =
-        document.getElementById(
-            "createEditorMessage"
-        );
-
-    const button =
-        document.querySelector(
-            "#createEditorForm button[type='submit']"
-        );
-
-
-    if (message) {
-        message.textContent = "";
-    }
-
-
-    if (!email || !password) {
-
-        if (message) {
-            message.textContent =
-                "Please enter an email and password.";
-        }
-
-        return;
-
-    }
-
-
-    if (password.length < 6) {
-
-        if (message) {
-            message.textContent =
-                "Password must be at least 6 characters.";
-        }
-
-        return;
-
-    }
-
-
-    if (button) {
-
-        button.disabled = true;
-
-        button.textContent =
-            "Creating...";
-
-    }
-
-
-    try {
-
-        const {
-            data,
-            error
-        } =
-            await supabaseClient.functions.invoke(
-                "create-editor",
-                {
-                    body: {
-                        email:
-                            email,
-
-                        password:
-                            password,
-
-                        name:
-                            name || null
-                    }
-                }
-            );
-
-
-        if (error) {
-
-            console.error(
-                "Create editor error:",
-                error
-            );
-
-            if (message) {
-                message.textContent =
-                    error.message ||
-                    "Unable to create editor.";
-            }
-
-            return;
-
-        }
-
-
-        if (
-            data &&
-            data.error
-        ) {
-
-            if (message) {
-                message.textContent =
-                    data.error;
-            }
-
-            return;
-
-        }
-
-
-        if (message) {
-
-            message.textContent =
-                "Editor account created successfully.";
-
-        }
-
-
-        document
-            .getElementById(
-                "createEditorForm"
-            )
-            ?.reset();
-
-
-        await loadEditorAccounts();
-
-    }
-
-    catch (error) {
-
-        console.error(
-            "Unexpected editor creation error:",
-            error
-        );
-
-        if (message) {
-
-            message.textContent =
-                "An unexpected error occurred.";
-
-        }
-
-    }
-
-    finally {
-
-        if (button) {
-
-            button.disabled = false;
-
-            button.textContent =
-                "Create Editor";
-
-        }
-
-    }
-
+.staff-department-cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
-
-/* =====================================================
-   LOAD EDITOR ACCOUNTS
-===================================================== */
-
-async function loadEditorAccounts() {
-
-    const container =
-        document.getElementById(
-            "editorManagementList"
-        );
-
-
-    if (!container) {
-        return;
-    }
-
-
-    container.innerHTML = `
-
-        <div class="management-empty">
-
-            Loading editors...
-
-        </div>
-
-    `;
-
-
-    try {
-
-        const {
-            data,
-            error
-        } =
-            await supabaseClient
-                .from("editors")
-                .select("*")
-                .order(
-                    "created_at",
-                    {
-                        ascending: true
-                    }
-                );
-
-
-        if (error) {
-
-            console.error(
-                "Editor loading error:",
-                error
-            );
-
-
-            container.innerHTML = `
-
-                <div class="management-empty">
-
-                    Unable to load editors.
-
-                </div>
-
-            `;
-
-            return;
-
-        }
-
-
-        container.innerHTML = "";
-
-
-        if (
-            !data ||
-            data.length === 0
-        ) {
-
-            container.innerHTML = `
-
-                <div class="management-empty">
-
-                    No editors have been created.
-
-                </div>
-
-            `;
-
-            return;
-
-        }
-
-
-        data.forEach(
-            editor => {
-
-                const item =
-                    document.createElement(
-                        "div"
-                    );
-
-
-                item.className =
-                    "management-item";
-
-
-                item.innerHTML = `
-
-                    <div>
-
-                        <span class="management-name">
-
-                            ${escapeHTML(
-                                editor.name ||
-                                editor.email ||
-                                "Unnamed Editor"
-                            )}
-
-                        </span>
-
-
-                        <small>
-
-                            ${escapeHTML(
-                                editor.email ||
-                                ""
-                            )}
-
-                        </small>
-
-                    </div>
-
-
-                    <div class="management-actions">
-
-                        <button
-                            class="management-button delete"
-                            onclick="deleteEditor('${editor.id}')"
-                        >
-                            Remove
-                        </button>
-
-                    </div>
-
-                `;
-
-
-                container.appendChild(
-                    item
-                );
-
-            }
-        );
-
-    }
-
-    catch (error) {
-
-        console.error(
-            "Unexpected editor loading error:",
-            error
-        );
-
-    }
-
+.staff-department-logo {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    border-radius: 6px;
+    flex-shrink: 0;
 }
-
-
-/* =====================================================
-   DELETE EDITOR
-===================================================== */
-
-async function deleteEditor(userId) {
-
-    if (!userId) {
-        return;
-    }
-
-
-    const confirmed =
-        confirm(
-            "Are you sure you want to remove this editor? They will no longer be able to access the Editor Panel."
-        );
-
-
-    if (!confirmed) {
-        return;
-    }
-
-
-    try {
-
-        const {
-            data,
-            error
-        } =
-            await supabaseClient.functions.invoke(
-                "create-editor",
-                {
-                    method: "DELETE",
-
-                    body: {
-                        userId:
-                            userId
-                    }
-                }
-            );
-
-
-        if (error) {
-
-            console.error(
-                "Delete editor error:",
-                error
-            );
-
-            alert(
-                error.message ||
-                "Unable to remove editor."
-            );
-
-            return;
-
-        }
-
-
-        if (
-            data &&
-            data.error
-        ) {
-
-            alert(
-                data.error
-            );
-
-            return;
-
-        }
-
-
-        alert(
-            "Editor removed successfully."
-        );
-
-
-        await loadEditorAccounts();
-
-    }
-
-    catch (error) {
-
-        console.error(
-            error
-        );
-
-        alert(
-            "An unexpected error occurred while removing the editor."
-        );
-
-    }
-
-}
-/* =====================================================
-   ADMIN SESSION
-===================================================== */
-
-function showAdminPanel() {
-
-    const login =
-        document.getElementById(
-            "adminLogin"
-        );
-
-    const panel =
-        document.getElementById(
-            "adminPanel"
-        );
-
-
-    if (!login || !panel) {
-        return;
-    }
-
-
-    login.classList.add("hidden");
-
-    panel.classList.remove("hidden");
-    loadEditorAccounts();
-}
-
-
-/* =====================================================
-   ADMIN LOGIN
-===================================================== */
-
-function setupAdminLogin() {
-
-    const adminLoginForm =
-        document.getElementById(
-            "adminLoginForm"
-        );
-
-
-    if (!adminLoginForm) {
-        return;
-    }
-
-
-    adminLoginForm.addEventListener(
-        "submit",
-        async function (event) {
-
-            event.preventDefault();
-
-
-            const password =
-                document.getElementById(
-                    "adminPassword"
-                )?.value;
-
-
-            const error =
-                document.getElementById(
-                    "adminLoginError"
-                );
-
-
-            if (error) {
-                error.textContent = "";
-            }
-
-
-            if (!password) {
-
-                if (error) {
-                    error.textContent =
-                        "Please enter your administrator password.";
-                }
-
-                return;
-
-            }
-
-
-            const button =
-                adminLoginForm.querySelector(
-                    "button[type='submit']"
-                );
-
-
-            if (button) {
-
-                button.disabled = true;
-
-                button.textContent =
-                    "Signing In...";
-
-            }
-
-
-            try {
-
-                /*
-                 * The administrator email is
-                 * the email configured in the
-                 * create-editor Edge Function.
-                 */
-
-                const ADMIN_EMAIL =
-                    "devmccollins@gmail.com";
-
-
-                const {
-                    data,
-                    error: loginError
-                } =
-                    await supabaseClient.auth
-                        .signInWithPassword({
-
-                            email:
-                                ADMIN_EMAIL,
-
-                            password:
-                                password
-
-                        });
-
-
-                if (loginError) {
-
-                    if (error) {
-                        error.textContent =
-                            loginError.message ||
-                            "Incorrect administrator password.";
-                    }
-
-                    return;
-
-                }
-
-
-                if (!data?.session) {
-
-                    if (error) {
-                        error.textContent =
-                            "Login failed. No authentication session was created.";
-                    }
-
-                    return;
-
-                }
-
-
-                showAdminPanel();
-
-            }
-
-            catch (loginException) {
-
-                console.error(
-                    "Admin login error:",
-                    loginException
-                );
-
-
-                if (error) {
-
-                    error.textContent =
-                        "Unable to connect to Supabase.";
-
-                }
-
-            }
-
-            finally {
-
-                if (button) {
-
-                    button.disabled = false;
-
-                    button.textContent =
-                        "Sign In";
-
-                }
-
-            }
-
-        }
-    );
-
-}
-
-
-/* =====================================================
-   ADMIN LOGOUT
-===================================================== */
-
-async function adminLogout() {
-
-    try {
-
-        await supabaseClient.auth.signOut();
-
-    }
-
-    catch (error) {
-
-        console.error(
-            "Admin logout error:",
-            error
-        );
-
-    }
-
-
-    location.reload();
-
-}
-
-
-/* =====================================================
-   CHECK ADMIN SESSION
-===================================================== */
-
-async function checkAdminSession() {
-
-    const login =
-        document.getElementById(
-            "adminLogin"
-        );
-
-    const panel =
-        document.getElementById(
-            "adminPanel"
-        );
-
-
-    if (!login || !panel) {
-        return;
-    }
-
-
-    try {
-
-        const {
-            data,
-            error
-        } =
-            await supabaseClient.auth
-                .getSession();
-
-
-        if (error) {
-
-            console.error(
-                "Unable to check admin session:",
-                error
-            );
-
-            showAdminLogin();
-
-            return;
-
-        }
-
-
-        const session =
-            data?.session;
-
-
-        if (!session) {
-
-            showAdminLogin();
-
-            return;
-
-        }
-
-
-        /*
-         * Make sure this session belongs
-         * to the administrator.
-         */
-
-        const ADMIN_EMAIL =
-            "devmccollins@gmail.com";
-
-
-        if (
-            session.user.email?.toLowerCase() !==
-            ADMIN_EMAIL.toLowerCase()
-        ) {
-
-            await supabaseClient.auth.signOut();
-
-            showAdminLogin();
-
-            return;
-
-        }
-
-
-        showAdminPanel();
-
-    }
-
-    catch (error) {
-
-        console.error(
-            "Admin authentication error:",
-            error
-        );
-
-        showAdminLogin();
-
-    }
-
-}
-
-
-/* =====================================================
-   SHOW ADMIN LOGIN
-===================================================== */
-
-function showAdminLogin() {
-
-    const login =
-        document.getElementById(
-            "adminLogin"
-        );
-
-    const panel =
-        document.getElementById(
-            "adminPanel"
-        );
-
-
-    if (!login || !panel) {
-        return;
-    }
-
-
-    panel.classList.add("hidden");
-
-    login.classList.remove("hidden");
-
-}
-
-
-/* =====================================================
-   EVENT LISTENERS
-===================================================== */
-
-function setupEventListeners() {
-    const createEditorForm =
-        document.getElementById(
-            "createEditorForm"
-        );
-
-
-    if (createEditorForm) {
-
-        createEditorForm.addEventListener(
-            "submit",
-            createEditorAccount
-        );
-
-    }
-    const logoInput =
-        document.getElementById(
-            "departmentLogo"
-        );
-
-
-    if (logoInput) {
-
-        logoInput.addEventListener(
-            "input",
-            updateDepartmentLogoPreview
-        );
-
-        logoInput.addEventListener(
-            "change",
-            updateDepartmentLogoPreview
-        );
-
-    }
-
-
-    const avatarInput =
-        document.getElementById("staffAvatarUrl");
-
-    if (avatarInput) {
-
-        avatarInput.addEventListener("input", updateStaffAvatarPreview);
-        avatarInput.addEventListener("change", updateStaffAvatarPreview);
-
-    }
-
-
-    const startDateInput =
-        document.getElementById(
-            "staffStartDate"
-        );
-
-
-    const endDateInput =
-        document.getElementById(
-            "staffEndDate"
-        );
-
-
-    if (startDateInput) {
-
-        startDateInput.addEventListener(
-            "change",
-            updateServicePreview
-        );
-
-    }
-
-
-    if (endDateInput) {
-
-        endDateInput.addEventListener(
-            "change",
-            updateServicePreview
-        );
-
-    }
-
-
-    const editorSearch =
-        document.getElementById(
-            "editorStaffSearch"
-        );
-
-
-    if (editorSearch) {
-
-        editorSearch.addEventListener(
-            "input",
-            displayEditorStaff
-        );
-
-    }
-
-}
-/* =====================================================
-   EDITOR MANAGEMENT
-===================================================== */
-
-async function loadEditorManagement() {
-
-    const container =
-        document.getElementById(
-            "editorManagementList"
-        );
-
-    if (!container) {
-        return;
-    }
-
-    container.innerHTML = `
-        <div class="management-empty">
-            Loading editors...
-        </div>
-    `;
-
-    try {
-
-        const {
-            data: {
-                user
-            }
-        } =
-            await supabaseClient.auth.getUser();
-
-        if (!user) {
-            container.innerHTML = `
-                <div class="management-empty">
-                    You must be signed in as an administrator.
-                </div>
-            `;
-            return;
-        }
-
-        const {
-            data,
-            error
-        } =
-            await supabaseClient
-                .from("editors")
-                .select("id, email, created_at")
-                .order(
-                    "created_at",
-                    {
-                        ascending: true
-                    }
-                );
-
-        if (error) {
-            console.error(
-                "Unable to load editors:",
-                error
-            );
-
-            container.innerHTML = `
-                <div class="management-empty">
-                    Unable to load editors.
-                </div>
-            `;
-
-            return;
-        }
-
-        container.innerHTML = "";
-
-        if (!data || data.length === 0) {
-
-            container.innerHTML = `
-                <div class="management-empty">
-                    No editors have been created yet.
-                </div>
-            `;
-
-            return;
-        }
-
-        data.forEach(editor => {
-
-            const item =
-                document.createElement("div");
-
-            item.className =
-                "management-item";
-
-            const date =
-                editor.created_at
-                    ? new Date(
-                        editor.created_at
-                    ).toLocaleDateString(
-                        "en-US",
-                        {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric"
-                        }
-                    )
-                    : "Unknown";
-
-            item.innerHTML = `
-
-                <div>
-
-                    <span class="management-name">
-                        ${escapeHTML(editor.email)}
-                    </span>
-
-                    <small>
-                        Created ${escapeHTML(date)}
-                    </small>
-
-                </div>
-
-                <div class="management-actions">
-
-                    <button
-                        class="management-button delete"
-                        onclick="removeEditor('${editor.id}', '${escapeHTML(editor.email)}')"
-                    >
-                        Remove
-                    </button>
-
-                </div>
-
-            `;
-
-            container.appendChild(item);
-
-        });
-
-    }
-
-    catch (error) {
-
-        console.error(
-            "Unexpected editor loading error:",
-            error
-        );
-
-        container.innerHTML = `
-            <div class="management-empty">
-                An unexpected error occurred.
-            </div>
-        `;
-
-    }
-
-}
-
-
-/* =====================================================
-   OPEN CREATE EDITOR MODAL
-===================================================== */
-
-function openCreateEditorModal() {
-
-    const modal =
-        document.getElementById(
-            "createEditorModal"
-        );
-
-    const form =
-        document.getElementById(
-            "createEditorForm"
-        );
-
-    const error =
-        document.getElementById(
-            "createEditorError"
-        );
-
-    if (!modal) {
-        return;
-    }
-
-    if (form) {
-        form.reset();
-    }
-
-    if (error) {
-        error.textContent = "";
-    }
-
-    modal.classList.remove("hidden");
-
-}
-
-
-/* =====================================================
-   CLOSE CREATE EDITOR MODAL
-===================================================== */
-
-function closeCreateEditorModal() {
-
-    const modal =
-        document.getElementById(
-            "createEditorModal"
-        );
-
-    if (!modal) {
-        return;
-    }
-
-    modal.classList.add("hidden");
-
-}
-
-
-/* =====================================================
-   CREATE EDITOR
-===================================================== */
-
-async function createEditorAccount(
-    email,
-    password
-) {
-
-    const {
-        data: {
-            session
-        }
-    } =
-        await supabaseClient.auth.getSession();
-
-    if (!session) {
-
-        throw new Error(
-            "You are not currently signed in."
-        );
-
-    }
-
-
-    const response =
-        await fetch(
-            `${SUPABASE_URL}/functions/v1/create-editor`,
-            {
-
-                method: "POST",
-
-                headers: {
-
-                    "Content-Type":
-                        "application/json",
-
-                    "Authorization":
-                        `Bearer ${session.access_token}`
-
-                },
-
-                body: JSON.stringify({
-
-                    email:
-                        email,
-
-                    password:
-                        password
-
-                })
-
-            }
-        );
-
-
-    let result = {};
-
-    try {
-        result =
-            await response.json();
-    }
-
-    catch {
-        result = {};
-    }
-
-
-    if (!response.ok) {
-
-        throw new Error(
-            result.error ||
-            result.message ||
-            "Unable to create editor."
-        );
-
-    }
-
-
-    return result;
-
-}
-
-
-/* =====================================================
-   CREATE EDITOR FORM
-===================================================== */
-
-function setupCreateEditorForm() {
-
-    const form =
-        document.getElementById(
-            "createEditorForm"
-        );
-
-    if (!form) {
-        return;
-    }
-
-
-    form.addEventListener(
-        "submit",
-        async function(event) {
-
-            event.preventDefault();
-
-
-            const email =
-                document.getElementById(
-                    "newEditorEmail"
-                )?.value
-                ?.trim();
-
-
-            const password =
-                document.getElementById(
-                    "newEditorPassword"
-                )?.value;
-
-
-            const error =
-                document.getElementById(
-                    "createEditorError"
-                );
-
-
-            const button =
-                form.querySelector(
-                    "button[type='submit']"
-                );
-
-
-            if (error) {
-                error.textContent = "";
-            }
-
-
-            if (!email || !password) {
-
-                if (error) {
-                    error.textContent =
-                        "Please enter an email and password.";
-                }
-
-                return;
-
-            }
-
-
-            if (password.length < 6) {
-
-                if (error) {
-                    error.textContent =
-                        "Password must be at least 6 characters.";
-                }
-
-                return;
-
-            }
-
-
-            if (button) {
-
-                button.disabled = true;
-
-                button.textContent =
-                    "Creating...";
-
-            }
-
-
-            try {
-
-                await createEditorAccount(
-                    email,
-                    password
-                );
-
-
-                closeCreateEditorModal();
-
-                await loadEditorManagement();
-
-
-                alert(
-                    `Editor account created successfully for ${email}.`
-                );
-
-            }
-
-            catch (error) {
-
-                console.error(
-                    "Create editor error:",
-                    error
-                );
-
-                if (error) {
-
-                    document.getElementById(
-                        "createEditorError"
-                    ).textContent =
-                        error.message ||
-                        "Unable to create editor.";
-
-                }
-
-            }
-
-            finally {
-
-                if (button) {
-
-                    button.disabled = false;
-
-                    button.textContent =
-                        "Create Editor";
-
-                }
-
-            }
-
-        }
-    );
-
-}
-
-
-/* =====================================================
-   REMOVE EDITOR
-===================================================== */
-
-async function removeEditor(
-    editorId,
-    email
-) {
-
-    const confirmed =
-        confirm(
-            `Are you sure you want to remove ${email} from the Editor Panel?`
-        );
-
-
-    if (!confirmed) {
-        return;
-    }
-
-
-    try {
-
-        const {
-            data: {
-                session
-            }
-        } =
-            await supabaseClient.auth.getSession();
-
-
-        if (!session) {
-
-            alert(
-                "You must be signed in."
-            );
-
-            return;
-
-        }
-
-
-        const response =
-            await fetch(
-                `${SUPABASE_URL}/functions/v1/create-editor`,
-                {
-
-                    method: "DELETE",
-
-                    headers: {
-
-                        "Content-Type":
-                            "application/json",
-
-                        "Authorization":
-                            `Bearer ${session.access_token}`
-
-                    },
-
-                    body: JSON.stringify({
-
-                        userId:
-                            editorId
-
-                    })
-
-                }
-            );
-
-
-        const result =
-            await response.json();
-
-
-        if (!response.ok) {
-
-            throw new Error(
-                result.error ||
-                "Unable to remove editor."
-            );
-
-        }
-
-
-        await loadEditorManagement();
-
-
-        alert(
-            `${email} has been removed from the Editor Panel.`
-        );
-
-    }
-
-    catch (error) {
-
-        console.error(
-            "Remove editor error:",
-            error
-        );
-
-        alert(
-            error.message ||
-            "Unable to remove editor."
-        );
-
-    }
-
-}
-
-
-/* =====================================================
-   OPEN EDITOR MANAGEMENT
-===================================================== */
-
-function openEditorManagement() {
-
-    const element =
-        document.getElementById(
-            "editorManagementList"
-        );
-
-    if (!element) {
-
-        alert(
-            "Editor management could not be found."
-        );
-
-        return;
-
-    }
-
-
-    element.scrollIntoView({
-        behavior: "smooth",
-        block: "center"
-    });
-
-
-    loadEditorManagement();
-
-}
-/* =====================================================
-   EDITOR MANAGEMENT
-===================================================== */
-
-const CREATE_EDITOR_FUNCTION =
-    `${SUPABASE_URL}/functions/v1/create-editor`;
-
-
-/* =====================================================
-   SHOW / HIDE CREATION FORM
-===================================================== */
-
-function openEditorCreationForm() {
-
-    const form =
-        document.getElementById(
-            "editorCreationForm"
-        );
-
-    if (!form) {
-        return;
-    }
-
-    form.classList.remove("hidden");
-
-    document.getElementById(
-        "newEditorEmail"
-    )?.focus();
-
-}
-
-
-function closeEditorCreationForm() {
-
-    const form =
-        document.getElementById(
-            "editorCreationForm"
-        );
-
-    if (!form) {
-        return;
-    }
-
-    form.classList.add("hidden");
-
-    const editorForm =
-        document.getElementById(
-            "createEditorForm"
-        );
-
-    if (editorForm) {
-        editorForm.reset();
-    }
-
-    const message =
-        document.getElementById(
-            "createEditorMessage"
-        );
-
-    if (message) {
-        message.textContent = "";
-    }
-
-}
-
-
-/* =====================================================
-   LOAD EDITORS
-===================================================== */
-
-async function loadEditorManagement() {
-
-    const container =
-        document.getElementById(
-            "editorManagementList"
-        );
-
-    if (!container) {
-        return;
-    }
-
-    container.innerHTML = `
-        <div class="management-empty">
-            Loading editors...
-        </div>
-    `;
-
-    try {
-
-        const {
-            data,
-            error
-        } =
-            await supabaseClient
-                .from("editors")
-                .select("id, email")
-                .order(
-                    "email",
-                    {
-                        ascending: true
-                    }
-                );
-
-        if (error) {
-
-            console.error(
-                "Editor loading error:",
-                error
-            );
-
-            container.innerHTML = `
-                <div class="management-empty">
-                    Unable to load editors.
-                </div>
-            `;
-
-            return;
-        }
-
-        displayEditorManagement(
-            data || []
-        );
-
-    }
-
-    catch (error) {
-
-        console.error(error);
-
-        container.innerHTML = `
-            <div class="management-empty">
-                Unable to load editors.
-            </div>
-        `;
-
-    }
-
-}
-
-
-/* =====================================================
-   DISPLAY EDITORS
-===================================================== */
-
-let editorManagementDatabase = [];
-
-
-function displayEditorManagement(
-    editors
-) {
-
-    const container =
-        document.getElementById(
-            "editorManagementList"
-        );
-
-    if (!container) {
-        return;
-    }
-
-    editorManagementDatabase =
-        editors || [];
-
-    const search =
-        document.getElementById(
-            "editorManagementSearch"
-        )?.value
-        ?.trim()
-        .toLowerCase()
-        || "";
-
-
-    const filtered =
-        editorManagementDatabase.filter(
-            editor =>
-                (editor.email || "")
-                    .toLowerCase()
-                    .includes(search)
-        );
-
-
-    container.innerHTML = "";
-
-
-    if (filtered.length === 0) {
-
-        container.innerHTML = `
-            <div class="management-empty">
-                No editors found.
-            </div>
-        `;
-
-        return;
-
-    }
-
-
-    filtered.forEach(
-        editor => {
-
-            const item =
-                document.createElement(
-                    "div"
-                );
-
-            item.className =
-                "management-item";
-
-
-            item.innerHTML = `
-
-                <div>
-
-                    <span class="management-name">
-                        ${escapeHTML(
-                            editor.email
-                        )}
-                    </span>
-
-                    <div
-                        style="
-                            font-size:13px;
-                            opacity:.6;
-                            margin-top:4px;
-                        "
-                    >
-                        Editor Account
-                    </div>
-
-                </div>
-
-
-                <div class="management-actions">
-
-                    <button
-                        class="management-button delete"
-                        onclick="removeEditor('${editor.id}')"
-                    >
-                        Remove
-                    </button>
-
-                </div>
-
-            `;
-
-
-            container.appendChild(item);
-
-        }
-    );
-
-}
-
-
-/* =====================================================
-   CREATE EDITOR
-===================================================== */
-
-function setupEditorManagement() {
-
-    const form =
-        document.getElementById(
-            "createEditorForm"
-        );
-
-    if (!form) {
-        return;
-    }
-
-
-    form.addEventListener(
-        "submit",
-        async function(event) {
-
-            event.preventDefault();
-
-
-            const email =
-                document.getElementById(
-                    "newEditorEmail"
-                )?.value
-                ?.trim();
-
-
-            const password =
-                document.getElementById(
-                    "newEditorPassword"
-                )?.value;
-
-
-            const message =
-                document.getElementById(
-                    "createEditorMessage"
-                );
-
-
-            const button =
-                form.querySelector(
-                    "button[type='submit']"
-                );
-
-
-            if (message) {
-                message.textContent = "";
-            }
-
-
-            if (!email || !password) {
-                return;
-            }
-
-
-            if (button) {
-
-                button.disabled = true;
-
-                button.textContent =
-                    "Creating...";
-
-            }
-
-
-            try {
-
-                const {
-                    data: {
-                        session
-                    }
-                } =
-                    await supabaseClient.auth
-                        .getSession();
-
-
-                if (!session) {
-
-                    if (message) {
-                        message.textContent =
-                            "Your admin session has expired.";
-                    }
-
-                    return;
-
-                }
-
-
-                const response =
-                    await fetch(
-                        CREATE_EDITOR_FUNCTION,
-                        {
-                            method: "POST",
-
-                            headers: {
-
-                                "Authorization":
-                                    `Bearer ${session.access_token}`,
-
-                                "Content-Type":
-                                    "application/json"
-
-                            },
-
-                            body:
-                                JSON.stringify({
-                                    email:
-                                        email,
-
-                                    password:
-                                        password
-                                })
-
-                        }
-                    );
-
-
-                const result =
-                    await response.json();
-
-
-                if (!response.ok) {
-
-                    if (message) {
-                        message.textContent =
-                            result.error ||
-                            "Unable to create editor.";
-                    }
-
-                    return;
-
-                }
-
-
-                if (message) {
-
-                    message.textContent =
-                        "Editor created successfully.";
-
-                }
-
-
-                closeEditorCreationForm();
-
-                await loadEditorManagement();
-
-            }
-
-            catch (error) {
-
-                console.error(error);
-
-                if (message) {
-                    message.textContent =
-                        "Unable to connect to the server.";
-                }
-
-            }
-
-            finally {
-
-                if (button) {
-
-                    button.disabled = false;
-
-                    button.textContent =
-                        "Create Editor";
-
-                }
-
-            }
-
-        }
-    );
-
-
-    const search =
-        document.getElementById(
-            "editorManagementSearch"
-        );
-
-
-    if (search) {
-
-        search.addEventListener(
-            "input",
-            function() {
-
-                displayEditorManagement(
-                    editorManagementDatabase
-                );
-
-            }
-        );
-
-    }
-
-}
-
-
-/* =====================================================
-   REMOVE EDITOR
-===================================================== */
-
-async function removeEditor(
-    userId
-) {
-
-    if (!userId) {
-        return;
-    }
-
-
-    const editor =
-        editorManagementDatabase.find(
-            item =>
-                String(item.id) ===
-                String(userId)
-        );
-
-
-    if (!editor) {
-        return;
-    }
-
-
-    const confirmed =
-        confirm(
-            `Are you sure you want to remove ${editor.email} as an editor?`
-        );
-
-
-    if (!confirmed) {
-        return;
-    }
-
-
-    try {
-
-        const {
-            data: {
-                session
-            }
-        } =
-            await supabaseClient.auth
-                .getSession();
-
-
-        if (!session) {
-
-            alert(
-                "Your admin session has expired."
-            );
-
-            return;
-
-        }
-
-
-        const response =
-            await fetch(
-                CREATE_EDITOR_FUNCTION,
-                {
-                    method: "DELETE",
-
-                    headers: {
-
-                        "Authorization":
-                            `Bearer ${session.access_token}`,
-
-                        "Content-Type":
-                            "application/json"
-
-                    },
-
-                    body:
-                        JSON.stringify({
-                            userId:
-                                userId
-                        })
-
-                }
-            );
-
-
-        const result =
-            await response.json();
-
-
-        if (!response.ok) {
-
-            alert(
-                result.error ||
-                "Unable to remove editor."
-            );
-
-            return;
-
-        }
-
-
-        await loadEditorManagement();
-
-    }
-
-    catch (error) {
-
-        console.error(error);
-
-        alert(
-            "Unable to connect to the server."
-        );
-
-    }
-
-}
-/* =====================================================
-   INITIALIZE WEBSITE
-===================================================== */
-
-document.addEventListener(
-    "DOMContentLoaded",
-    async function () {
-        displayHomepageEditors();
-        
-        setupEditorLogin();
-
-        setupStaffForm();
-
-        setupDepartmentForm();
-
-        setupEventListeners();
-        const adminForgotPassword =
-    document.getElementById("adminForgotPassword");
-
-if (adminForgotPassword) {
-
-    adminForgotPassword.addEventListener(
-        "click",
-        async function () {
-
-            const error =
-                await sendPasswordReset(ADMIN_EMAIL);
-
-            const message =
-                document.getElementById("adminLoginError");
-
-            if (message) {
-
-                message.style.color = error ? "" : "green";
-
-                message.textContent =
-                    error
-                        ? (error.message || "Unable to send reset email.")
-                        : "Password reset email sent. Check your inbox.";
-
-            }
-
-        }
-    );
-
-}
-
-
-const editorForgotPassword =
-    document.getElementById("editorForgotPassword");
-
-if (editorForgotPassword) {
-
-    editorForgotPassword.addEventListener(
-        "click",
-        async function () {
-
-            const email =
-                document.getElementById("editorEmail")?.value?.trim();
-
-            const message =
-                document.getElementById("editorLoginError");
-
-            if (!email) {
-
-                if (message) {
-                    message.textContent =
-                        "Enter your email above first, then click Forgot Password.";
-                }
-
-                return;
-
-            }
-
-            const error =
-                await sendPasswordReset(email);
-
-            if (message) {
-
-                message.style.color = error ? "" : "green";
-
-                message.textContent =
-                    error
-                        ? (error.message || "Unable to send reset email.")
-                        : "Password reset email sent. Check your inbox.";
-
-            }
-
-        }
-    );
-
-}
-
-        console.log(
-            "Departments loaded:",
-            departmentDatabase
-        );
-        
-        console.log(
-            "Department count:",
-            departmentDatabase.length
-        );
-
-
-        /* =============================================
-           LOAD DEPARTMENTS
-        ============================================== */
-
-        await loadDepartmentDatabase();
-
-        await loadStatusDatabase();
-
-        await loadRankDatabase();
-
-        await loadStaffDatabase();
-
-        await loadSpotlightDatabase();
-
-
-        /* =============================================
-           HOMEPAGE
-        ============================================== */
-
-        displayHomepageDepartments();
-
-        displayHomepageSpotlights();
-
-
-        /* =============================================
-           DEPARTMENTS PAGE
-        ============================================== */
-
-        displayDepartmentPage();
-
-
-        /* =============================================
-           INDIVIDUAL DEPARTMENT PAGE
-        ============================================== */
-
-        await displayIndividualDepartment();
-
-
-        /* =============================================
-           STAFF PAGE
-        ============================================== */
-
-        await initializeStaffPage();
-
-
-        /* =============================================
-           EDITOR
-        ============================================== */
-
-        await checkEditorSession();
-
-
-       /* =============================================
-          ADMIN
-        ============================================== */
-
-        setupAdminLogin();
-
-        await checkAdminSession();
-        loadEditorManagement();
-
-
-        /* =============================================
-           CONFIGURATION
-        ============================================== */
-
-        displayRankManagement();
-
-        displayStatusManagement();
-
-        displayDepartmentManagement();
-        loadEditorManagement();
-
-    }
-);
-
-/* =====================================================
-   STAFF SPOTLIGHTS
-===================================================== */
-
-let spotlightDatabase = { month: [], week: [] };
-
-async function loadSpotlightDatabase() {
-
-    try {
-
-        const { data, error } =
-            await supabaseClient
-                .from("spotlights")
-                .select("id, type, staff_id")
-                .order("created_at", { ascending: true });
-
-        if (error) {
-            console.error("Spotlight loading error:", error);
-            spotlightDatabase = { month: [], week: [] };
-            return;
-        }
-
-        spotlightDatabase = { month: [], week: [] };
-
-        (data || []).forEach(row => {
-            if (spotlightDatabase[row.type]) {
-                spotlightDatabase[row.type].push({
-                    id: row.id,
-                    staffId: row.staff_id
-                });
-            }
-        });
-
-    } catch (error) {
-        console.error("Unexpected spotlight error:", error);
-        spotlightDatabase = { month: [], week: [] };
-    }
-
-}
-
-
-function createSpotlightPersonCard(staffId) {
-
-    const member = staffDatabase.find(
-        item => String(item.id) === String(staffId)
-    );
-
-    if (!member) return "";
-
-    const initials =
-        member.username
-            .trim()
-            .split(/\s+/)
-            .map(word => word.charAt(0))
-            .join("")
-            .substring(0, 2)
-            .toUpperCase();
-
-    const avatar = getSafeLogoUrl(member.avatarUrl);
-
-    return `
-
-        <div class="spotlight-person">
-
-            <div class="spotlight-avatar">
-                ${
-                    avatar
-                        ? `<img src="${escapeHTML(avatar)}" alt="" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;">`
-                        : escapeHTML(initials)
-                }
-            </div>
-
-            <h4>${escapeHTML(member.username)}</h4>
-
-            <p>${escapeHTML(member.rank)}</p>
-
-        </div>
-
-    `;
-
-}
-
-
-function displayHomepageSpotlights() {
-
-    const monthContainer = document.getElementById("staffOfMonth");
-    const weekContainer = document.getElementById("staffOfWeek");
-
-    if (monthContainer) {
-
-        if (spotlightDatabase.month.length === 0) {
-
-            monthContainer.innerHTML = `
-                <div class="staff-empty">
-                    <p>No one has been selected yet.</p>
-                </div>
-            `;
-
-        } else {
-
-            monthContainer.innerHTML =
-                spotlightDatabase.month
-                    .map(entry => createSpotlightPersonCard(entry.staffId))
-                    .join("");
-
-        }
-
-    }
-
-    if (weekContainer) {
-
-        if (spotlightDatabase.week.length === 0) {
-
-            weekContainer.innerHTML = `
-                <div class="staff-empty">
-                    <p>No one has been selected yet.</p>
-                </div>
-            `;
-
-        } else {
-
-            weekContainer.innerHTML =
-                spotlightDatabase.week
-                    .map(entry => createSpotlightPersonCard(entry.staffId))
-                    .join("");
-
-        }
-
-    }
-
-}
-
-
-function populateSpotlightAddSelects() {
-
-    ["month", "week"].forEach(type => {
-
-        const select = document.getElementById(`spotlight${type === "month" ? "Month" : "Week"}AddSelect`);
-
-        if (!select) return;
-
-        const alreadyAdded = spotlightDatabase[type].map(entry => String(entry.staffId));
-
-        select.innerHTML = `<option value="">-- Select staff member --</option>`;
-
-        staffDatabase
-            .filter(member => !alreadyAdded.includes(String(member.id)))
-            .forEach(member => {
-
-                const option = document.createElement("option");
-                option.value = member.id;
-                option.textContent = member.username;
-                select.appendChild(option);
-
-            });
-
-    });
-
-}
-
-
-function displaySpotlightManagement(type) {
-
-    const container = document.getElementById(
-        type === "month" ? "spotlightMonthList" : "spotlightWeekList"
-    );
-
-    if (!container) return;
-
-    container.innerHTML = "";
-
-    if (spotlightDatabase[type].length === 0) {
-
-        container.innerHTML = `
-            <div class="management-empty">
-                No one has been added yet.
-            </div>
-        `;
-
-        return;
-    }
-
-    spotlightDatabase[type].forEach(entry => {
-
-        const member = staffDatabase.find(
-            item => String(item.id) === String(entry.staffId)
-        );
-
-        const item = document.createElement("div");
-        item.className = "management-item";
-
-        item.innerHTML = `
-
-            <span class="management-name">
-                ${escapeHTML(member ? member.username : "Unknown Staff Member")}
-            </span>
-
-            <div class="management-actions">
-
-                <button
-                    class="management-button delete"
-                    onclick="removeSpotlightMember('${entry.id}', '${type}')"
-                >
-                    Remove
-                </button>
-
-            </div>
-
-        `;
-
-        container.appendChild(item);
-
-    });
-
-}
-
-
-function refreshSpotlightUI() {
-
-    displaySpotlightManagement("month");
-    displaySpotlightManagement("week");
-    populateSpotlightAddSelects();
-
-}
-
-
-async function addSpotlightMember(type) {
-
-    const select = document.getElementById(
-        type === "month" ? "spotlightMonthAddSelect" : "spotlightWeekAddSelect"
-    );
-
-    const staffId = select?.value;
-
-    if (!staffId) {
-        alert("Please select a staff member first.");
-        return;
-    }
-
-    try {
-
-        const { data, error } =
-            await supabaseClient
-                .from("spotlights")
-                .insert({ type: type, staff_id: staffId })
-                .select()
-                .single();
-
-        if (error) {
-            alert("Unable to add spotlight:\n\n" + error.message);
-            return;
-        }
-
-        spotlightDatabase[type].push({ id: data.id, staffId: data.staff_id });
-
-        refreshSpotlightUI();
-
-    } catch (error) {
-        console.error(error);
-        alert("An unexpected error occurred while adding the spotlight.");
-    }
-
-}
-
-
-async function removeSpotlightMember(id, type) {
-
-    try {
-
-        const { error } =
-            await supabaseClient
-                .from("spotlights")
-                .delete()
-                .eq("id", id);
-
-        if (error) {
-            alert("Unable to remove spotlight:\n\n" + error.message);
-            return;
-        }
-
-        spotlightDatabase[type] =
-            spotlightDatabase[type].filter(entry => String(entry.id) !== String(id));
-
-        refreshSpotlightUI();
-
-    } catch (error) {
-        console.error(error);
-        alert("An unexpected error occurred while removing the spotlight.");
-    }
-
-}
-
-
-/* =====================================================
-   GET DEPARTMENT LOGO
-===================================================== */
-
-function getDepartmentLogo(departmentName) {
-
-    if (!departmentName) {
-        return "";
-    }
-
-    const department =
-        departmentDatabase.find(
-            department =>
-                department.name.toLowerCase() ===
-                departmentName.toLowerCase()
-        );
-
-    if (!department) {
-        return "";
-    }
-
-    return getSafeLogoUrl(
-        department.logoUrl
-    );
-
-}
-
-setupEventListeners();
-setupCreateEditorForm();
