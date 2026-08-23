@@ -846,7 +846,82 @@
 
 </section>
 
+<!-- =====================================================
+     STAFF SPOTLIGHTS
+===================================================== -->
 
+<section class="management-section">
+
+    <div class="management-header">
+
+        <div>
+
+            <p class="section-label">
+                RECOGNITION
+            </p>
+
+            <h2>
+                Staff Spotlights
+            </h2>
+
+            <p>
+                Choose who is featured as Staff of the Month
+                and Staff of the Week on the homepage.
+            </p>
+
+        </div>
+
+    </div>
+
+    <div style="padding: 20px 25px;">
+
+        <div class="form-group">
+
+            <label>Staff of the Month</label>
+
+            <div style="display:flex; gap:10px;">
+
+                <select id="spotlightMonthAddSelect" style="flex:1;"></select>
+
+                <button
+                    type="button"
+                    class="management-add-button"
+                    onclick="addSpotlightMember('month')"
+                >
+                    + Add
+                </button>
+
+            </div>
+
+        </div>
+
+        <div id="spotlightMonthList" class="management-list"></div>
+
+        <div class="form-group" style="margin-top: 25px;">
+
+            <label>Staff of the Week</label>
+
+            <div style="display:flex; gap:10px;">
+
+                <select id="spotlightWeekAddSelect" style="flex:1;"></select>
+
+                <button
+                    type="button"
+                    class="management-add-button"
+                    onclick="addSpotlightMember('week')"
+                >
+                    + Add
+                </button>
+
+            </div>
+
+        </div>
+
+        <div id="spotlightWeekList" class="management-list"></div>
+
+    </div>
+
+</section>
 
 <!-- =====================================================
      RANK MANAGEMENT
