@@ -229,6 +229,9 @@ async function loadStaffDatabase() {
                     department:
                         member.department || "",
 
+                    avatarUrl:
+                        member.avatar_url || "",
+
                     startDate:
                         member.start_date || "",
 
@@ -1150,15 +1153,15 @@ async function showEditorPanel() {
 
     displayEditorStaff();
 
-    await loadSpotlightDatabase();
-
-    refreshSpotlightUI();
-
     displayDepartmentManagement();
 
     displayRankManagement();
 
     displayStatusManagement();
+
+    await loadSpotlightDatabase();
+
+    refreshSpotlightUI();
 
 }
 
@@ -1633,6 +1636,12 @@ function openStaffForm(
 
 
         document.getElementById(
+            "staffAvatarUrl"
+        ).value =
+            member.avatarUrl || "";
+
+
+        document.getElementById(
             "staffRank"
         ).value =
             member.rank;
@@ -1664,6 +1673,8 @@ function openStaffForm(
 
         updateServicePreview();
 
+        updateStaffAvatarPreview();
+
     }
 
     else {
@@ -1674,6 +1685,8 @@ function openStaffForm(
             "Add Staff Member";
 
         updateServicePreview();
+
+        updateStaffAvatarPreview();
 
     }
 
@@ -1748,6 +1761,13 @@ function setupStaffForm() {
                 document.getElementById(
                     "staffDepartment"
                 ).value;
+
+            const avatarUrl =
+                document.getElementById(
+                    "staffAvatarUrl"
+                )?.value
+                ?.trim()
+                || "";
 
             const startDate =
                 document.getElementById(
@@ -1871,6 +1891,9 @@ function setupStaffForm() {
                                 department:
                                     department,
 
+                                avatar_url:
+                                    avatarUrl || null,
+
                                 start_date:
                                     startDate,
 
@@ -1930,6 +1953,9 @@ function setupStaffForm() {
                                 department:
                                     data.department || "",
 
+                                avatarUrl:
+                                    data.avatar_url || "",
+
                                 startDate:
                                     data.start_date || "",
 
@@ -1965,6 +1991,9 @@ function setupStaffForm() {
 
                                 department:
                                     department,
+
+                                avatar_url:
+                                    avatarUrl || null,
 
                                 start_date:
                                     startDate,
@@ -2007,6 +2036,9 @@ function setupStaffForm() {
 
                             department:
                                 data.department || "",
+
+                            avatarUrl:
+                                data.avatar_url || "",
 
                             startDate:
                                 data.start_date || "",
@@ -2567,6 +2599,43 @@ function updateDepartmentLogoPreview() {
 
             };
 
+    }
+
+}
+
+
+/* =====================================================
+   STAFF AVATAR PREVIEW
+===================================================== */
+
+function updateStaffAvatarPreview() {
+
+    const input = document.getElementById("staffAvatarUrl");
+    const preview = document.getElementById("staffAvatarPreview");
+
+    if (!input || !preview) return;
+
+    const url = getSafeLogoUrl(input.value.trim());
+
+    if (!url) {
+        preview.innerHTML = `<span>No Picture</span>`;
+        return;
+    }
+
+    preview.innerHTML = `
+        <img
+            src="${escapeHTML(url)}"
+            alt="Profile Picture Preview"
+            style="width:100%; height:100%; object-fit:cover; border-radius:inherit;"
+        >
+    `;
+
+    const avatarImage = preview.querySelector("img");
+
+    if (avatarImage) {
+        avatarImage.onerror = function () {
+            preview.innerHTML = `<span>Unable to load image</span>`;
+        };
     }
 
 }
@@ -4946,6 +5015,17 @@ function setupEventListeners() {
     }
 
 
+    const avatarInput =
+        document.getElementById("staffAvatarUrl");
+
+    if (avatarInput) {
+
+        avatarInput.addEventListener("input", updateStaffAvatarPreview);
+        avatarInput.addEventListener("change", updateStaffAvatarPreview);
+
+    }
+
+
     const startDateInput =
         document.getElementById(
             "staffStartDate"
@@ -6271,6 +6351,7 @@ if (editorForgotPassword) {
         ============================================== */
 
         displayHomepageDepartments();
+
         displayHomepageSpotlights();
 
 
@@ -6326,31 +6407,6 @@ if (editorForgotPassword) {
     }
 );
 
-/* =====================================================
-   GET DEPARTMENT LOGO
-===================================================== */
-
-function getDepartmentLogo(departmentName) {
-    if (!departmentName) {
-        return "";
-    }
-
-    const department =
-        departmentDatabase.find(
-            department =>
-                department.name.toLowerCase() ===
-                departmentName.toLowerCase()
-        );
-
-    if (!department) {
-        return "";
-    }
-
-    return getSafeLogoUrl(
-        department.logoUrl
-    );
-
-}
 /* =====================================================
    STAFF SPOTLIGHTS
 ===================================================== */
@@ -6409,12 +6465,18 @@ function createSpotlightPersonCard(staffId) {
             .substring(0, 2)
             .toUpperCase();
 
+    const avatar = getSafeLogoUrl(member.avatarUrl);
+
     return `
 
         <div class="spotlight-person">
 
             <div class="spotlight-avatar">
-                ${escapeHTML(initials)}
+                ${
+                    avatar
+                        ? `<img src="${escapeHTML(avatar)}" alt="" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;">`
+                        : escapeHTML(initials)
+                }
             </div>
 
             <h4>${escapeHTML(member.username)}</h4>
@@ -6636,5 +6698,34 @@ async function removeSpotlightMember(id, type) {
     }
 
 }
+
+
+/* =====================================================
+   GET DEPARTMENT LOGO
+===================================================== */
+
+function getDepartmentLogo(departmentName) {
+
+    if (!departmentName) {
+        return "";
+    }
+
+    const department =
+        departmentDatabase.find(
+            department =>
+                department.name.toLowerCase() ===
+                departmentName.toLowerCase()
+        );
+
+    if (!department) {
+        return "";
+    }
+
+    return getSafeLogoUrl(
+        department.logoUrl
+    );
+
+}
+
 setupEventListeners();
 setupCreateEditorForm();
