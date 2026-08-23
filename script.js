@@ -100,42 +100,39 @@ const defaultStatuses = [
 
 
 /* =====================================================
-   LOCAL RANK / STATUS CONFIGURATION
+   RANK CONFIGURATION (SUPABASE)
 ===================================================== */
 
-function getRanks() {
+let rankDatabase = [];
 
-    const saved =
-        localStorage.getItem("rtsRanks");
+async function loadRankDatabase() {
 
-    if (saved) {
+    try {
 
-        try {
-            return JSON.parse(saved);
+        const { data, error } =
+            await supabaseClient
+                .from("ranks")
+                .select("*")
+                .order("created_at", { ascending: true });
+
+        if (error) {
+            console.error("Supabase rank loading error:", error);
+            rankDatabase = [];
+            return [];
         }
 
-        catch {
-            return [...defaultRanks];
-        }
+        rankDatabase = (data || []).map(rank => ({
+            id: rank.id,
+            name: rank.name || ""
+        }));
 
+        return rankDatabase;
+
+    } catch (error) {
+        console.error("Unexpected Supabase rank error:", error);
+        rankDatabase = [];
+        return [];
     }
-
-    localStorage.setItem(
-        "rtsRanks",
-        JSON.stringify(defaultRanks)
-    );
-
-    return [...defaultRanks];
-
-}
-
-
-function saveRanks(ranks) {
-
-    localStorage.setItem(
-        "rtsRanks",
-        JSON.stringify(ranks)
-    );
 
 }
 
@@ -607,26 +604,17 @@ function loadFilterOptions() {
         rankFilter.innerHTML =
             `<option value="all">All Ranks</option>`;
 
-        getRanks().forEach(
-            rank => {
+        rankDatabase.forEach(rank => {
 
-                const option =
-                    document.createElement(
-                        "option"
-                    );
+            const option =
+                document.createElement("option");
 
-                option.value =
-                    rank;
+            option.value = rank.name;
+            option.textContent = rank.name;
 
-                option.textContent =
-                    rank;
+            rankFilter.appendChild(option);
 
-                rankFilter.appendChild(
-                    option
-                );
-
-            }
-        );
+        });
 
     }
 
@@ -1522,24 +1510,17 @@ function populateStaffFormOptions() {
     department.innerHTML = "";
 
 
-    getRanks().forEach(
-        value => {
+    rankDatabase.forEach(value => {
 
-            const option =
-                document.createElement(
-                    "option"
-                );
+        const option =
+            document.createElement("option");
 
-            option.value =
-                value;
+        option.value = value.name;
+        option.textContent = value.name;
 
-            option.textContent =
-                value;
+        rank.appendChild(option);
 
-            rank.appendChild(option);
-
-        }
-    );
+    });
 
 
     statusDatabase.forEach(
@@ -3155,7 +3136,7 @@ function displayDepartmentPage() {
 
 
 /* =====================================================
-   HOMEPAGE DEPARTMENTS
+   HOMEPAGE EDITORS
 ===================================================== */
 async function displayHomepageEditors() {
 
@@ -3748,209 +3729,171 @@ function openSeniorStaff() {
 
 function displayRankManagement() {
 
-    const container =
-        document.getElementById(
-            "rankManagementList"
-        );
+    const container = document.getElementById("rankManagementList");
 
-
-    if (!container) {
-        return;
-    }
-
-
-    const ranks =
-        getRanks();
-
+    if (!container) return;
 
     container.innerHTML = "";
 
+    if (rankDatabase.length === 0) {
 
-    ranks.forEach(
-        (rank, index) => {
+        container.innerHTML = `
+            <div class="management-empty">
+                No ranks have been created.
+            </div>
+        `;
 
-            const item =
-                document.createElement(
-                    "div"
-                );
+        return;
+    }
 
+    rankDatabase.forEach(rank => {
 
-            item.className =
-                "management-item";
+        const item = document.createElement("div");
+        item.className = "management-item";
 
+        item.innerHTML = `
 
-            item.innerHTML = `
+            <span class="management-name">
+                ${escapeHTML(rank.name)}
+            </span>
 
-                <span class="management-name">
+            <div class="management-actions">
 
-                    ${escapeHTML(rank)}
+                <button class="management-button" onclick="editRank('${rank.id}')">
+                    Edit
+                </button>
 
-                </span>
+                <button class="management-button delete" onclick="removeRank('${rank.id}')">
+                    Remove
+                </button>
 
+            </div>
 
-                <div class="management-actions">
+        `;
 
-                    <button
-                        class="management-button"
-                        onclick="editRank(${index})"
-                    >
-                        Edit
-                    </button>
+        container.appendChild(item);
 
+    });
 
-                    <button
-                        class="management-button delete"
-                        onclick="removeRank(${index})"
-                    >
-                        Remove
-                    </button>
-
-                </div>
-
-            `;
+}
 
 
-            container.appendChild(item);
+async function addRank() {
 
-        }
+    const name = prompt("Enter the name of the new rank:");
+    if (!name) return;
+
+    const cleanName = name.trim();
+    if (!cleanName) return;
+
+    const exists = rankDatabase.some(
+        rank => rank.name.toLowerCase() === cleanName.toLowerCase()
     );
 
-}
-
-
-function addRank() {
-
-    const name =
-        prompt(
-            "Enter the name of the new rank:"
-        );
-
-
-    if (!name) {
-        return;
-    }
-
-
-    const cleanName =
-        name.trim();
-
-
-    if (!cleanName) {
-        return;
-    }
-
-
-    const ranks =
-        getRanks();
-
-
-    const exists =
-        ranks.some(
-            rank =>
-                rank.toLowerCase() ===
-                cleanName.toLowerCase()
-        );
-
-
     if (exists) {
-
-        alert(
-            "That rank already exists."
-        );
-
+        alert("That rank already exists.");
         return;
-
     }
 
+    try {
 
-    ranks.push(cleanName);
+        const { data, error } =
+            await supabaseClient
+                .from("ranks")
+                .insert({ name: cleanName })
+                .select()
+                .single();
 
-    saveRanks(ranks);
+        if (error) {
+            alert("Unable to add rank:\n\n" + error.message);
+            return;
+        }
 
-    displayRankManagement();
+        rankDatabase.push({ id: data.id, name: data.name });
 
-    populateStaffFormOptions();
+        displayRankManagement();
+        loadFilterOptions();
+        populateStaffFormOptions();
+
+    } catch (error) {
+        console.error(error);
+        alert("An unexpected error occurred while adding the rank.");
+    }
 
 }
 
 
-function editRank(index) {
+async function editRank(id) {
 
-    const ranks =
-        getRanks();
+    const rank = rankDatabase.find(item => String(item.id) === String(id));
+    if (!rank) return;
 
+    const newName = prompt("Enter the new rank name:", rank.name);
+    if (!newName) return;
 
-    const oldName =
-        ranks[index];
+    const cleanName = newName.trim();
+    if (!cleanName) return;
 
+    try {
 
-    const newName =
-        prompt(
-            "Enter the new rank name:",
-            oldName
-        );
+        const { data, error } =
+            await supabaseClient
+                .from("ranks")
+                .update({ name: cleanName })
+                .eq("id", id)
+                .select()
+                .single();
 
+        if (error) {
+            alert("Unable to update rank:\n\n" + error.message);
+            return;
+        }
 
-    if (!newName) {
-        return;
+        rank.name = data.name;
+
+        displayRankManagement();
+        loadFilterOptions();
+        populateStaffFormOptions();
+
+    } catch (error) {
+        console.error(error);
+        alert("An unexpected error occurred while updating the rank.");
     }
-
-
-    const cleanName =
-        newName.trim();
-
-
-    if (!cleanName) {
-        return;
-    }
-
-
-    ranks[index] =
-        cleanName;
-
-
-    saveRanks(ranks);
-
-    displayRankManagement();
-
-    populateStaffFormOptions();
 
 }
 
 
-function removeRank(index) {
+async function removeRank(id) {
 
-    const ranks =
-        getRanks();
+    const rank = rankDatabase.find(item => String(item.id) === String(id));
+    if (!rank) return;
 
+    const confirmed = confirm(`Are you sure you want to remove "${rank.name}"?`);
+    if (!confirmed) return;
 
-    const rank =
-        ranks[index];
+    try {
 
+        const { error } =
+            await supabaseClient
+                .from("ranks")
+                .delete()
+                .eq("id", id);
 
-    if (!rank) {
-        return;
+        if (error) {
+            alert("Unable to delete rank:\n\n" + error.message);
+            return;
+        }
+
+        rankDatabase = rankDatabase.filter(item => String(item.id) !== String(id));
+
+        displayRankManagement();
+        loadFilterOptions();
+        populateStaffFormOptions();
+
+    } catch (error) {
+        console.error(error);
+        alert("An unexpected error occurred while removing the rank.");
     }
-
-
-    const confirmed =
-        confirm(
-            `Are you sure you want to remove "${rank}"?`
-        );
-
-
-    if (!confirmed) {
-        return;
-    }
-
-
-    ranks.splice(index, 1);
-
-    saveRanks(ranks);
-
-    displayRankManagement();
-
-    populateStaffFormOptions();
 
 }
 
@@ -4084,7 +4027,6 @@ async function editStatus(id) {
                 .from("statuses")
                 .update({ name: cleanName })
                 .eq("id", id)
-                .select()
                 .single();
 
         if (error) {
@@ -6312,6 +6254,8 @@ if (editorForgotPassword) {
         await loadDepartmentDatabase();
 
         await loadStatusDatabase();
+
+        await loadRankDatabase();
 
 
         /* =============================================
