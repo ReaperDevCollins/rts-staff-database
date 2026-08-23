@@ -130,48 +130,11 @@ function getRanks() {
 }
 
 
-function getStatuses() {
-
-    const saved =
-        localStorage.getItem("rtsStatuses");
-
-    if (saved) {
-
-        try {
-            return JSON.parse(saved);
-        }
-
-        catch {
-            return [...defaultStatuses];
-        }
-
-    }
-
-    localStorage.setItem(
-        "rtsStatuses",
-        JSON.stringify(defaultStatuses)
-    );
-
-    return [...defaultStatuses];
-
-}
-
-
 function saveRanks(ranks) {
 
     localStorage.setItem(
         "rtsRanks",
         JSON.stringify(ranks)
-    );
-
-}
-
-
-function saveStatuses(statuses) {
-
-    localStorage.setItem(
-        "rtsStatuses",
-        JSON.stringify(statuses)
     );
 
 }
@@ -402,6 +365,49 @@ function calculateServiceDays(
 
 }
 
+let statusDatabase = [];
+
+async function loadStatusDatabase() {
+
+    try {
+
+        const { data, error } =
+            await supabaseClient
+                .from("statuses")
+                .select("*")
+                .order("created_at", { ascending: true });
+
+        if (error) {
+            console.error("Supabase status loading error:", error);
+            statusDatabase = [];
+            return [];
+        }
+
+        statusDatabase = (data || []).map(status => ({
+            id: status.id,
+            name: status.name || "",
+            color: status.color || "#5865f2"
+        }));
+
+        return statusDatabase;
+
+    } catch (error) {
+        console.error("Unexpected Supabase status error:", error);
+        statusDatabase = [];
+        return [];
+    }
+
+}
+
+function getStatusColor(statusName) {
+
+    const match = statusDatabase.find(
+        status => status.name.toLowerCase() === (statusName || "").toLowerCase()
+    );
+
+    return match ? match.color : "#858b98";
+
+}
 
 /* =====================================================
    FORMAT DATE
@@ -576,33 +582,24 @@ function loadFilterOptions() {
         );
 
 
-    if (statusFilter) {
+        if (statusFilter) {
 
-        statusFilter.innerHTML =
-            `<option value="all">All Statuses</option>`;
-
-        getStatuses().forEach(
-            status => {
-
+            statusFilter.innerHTML =
+                `<option value="all">All Statuses</option>`;
+    
+            statusDatabase.forEach(status => {
+    
                 const option =
-                    document.createElement(
-                        "option"
-                    );
-
-                option.value =
-                    status;
-
-                option.textContent =
-                    status;
-
-                statusFilter.appendChild(
-                    option
-                );
-
-            }
-        );
-
-    }
+                    document.createElement("option");
+    
+                option.value = status.name;
+                option.textContent = status.name;
+    
+                statusFilter.appendChild(option);
+    
+            });
+    
+        }
 
 
     if (rankFilter) {
@@ -807,23 +804,30 @@ function displayStaff() {
 
                 <div>
 
-                    <span class="staff-status">
+                <div>
 
-                        ${escapeHTML(
-                            staff.status
-                        )}
+                    <span
+                        class="staff-status"
+                        style="background:${escapeHTML(getStatusColor(staff.status))}33; color:${escapeHTML(getStatusColor(staff.status))};"
+                    >
+
+                        ${escapeHTML(staff.status)}
 
                     </span>
 
                 </div>
 
-               <div class="staff-department-cell">
+                <div class="staff-department-cell">
 
-    ${escapeHTML(
-        staff.department
-    )}
+                    ${
+                        getDepartmentLogo(staff.department)
+                            ? `<img src="${escapeHTML(getDepartmentLogo(staff.department))}" alt="" class="staff-department-logo">`
+                            : ""
+                    }
 
-</div>
+                    <span>${escapeHTML(staff.department)}</span>
+
+                </div>
 
                 <div class="staff-date">
 
@@ -1402,11 +1406,16 @@ function displayEditorStaff() {
                 </div>
 
 
-                <div class="editor-staff-detail">
+                        <div class="editor-staff-detail">
 
-                    ${escapeHTML(
-                        member.status
-                    )}
+                    <span
+                        class="staff-status"
+                        style="background:${escapeHTML(getStatusColor(member.status))}33; color:${escapeHTML(getStatusColor(member.status))};"
+                    >
+
+                        ${escapeHTML(member.status)}
+
+                    </span>
 
                 </div>
 
@@ -1533,19 +1542,14 @@ function populateStaffFormOptions() {
     );
 
 
-    getStatuses().forEach(
+    statusDatabase.forEach(
         value => {
 
             const option =
-                document.createElement(
-                    "option"
-                );
+                document.createElement("option");
 
-            option.value =
-                value;
-
-            option.textContent =
-                value;
+            option.value = value.name;
+            option.textContent = value.name;
 
             status.appendChild(option);
 
@@ -3153,7 +3157,77 @@ function displayDepartmentPage() {
 /* =====================================================
    HOMEPAGE DEPARTMENTS
 ===================================================== */
+async function displayHomepageEditors() {
 
+    const container = document.getElementById("editorList");
+
+    if (!container) return;
+
+    try {
+
+        const { data, error } =
+            await supabaseClient
+                .from("editors")
+                .select("id, username")
+                .order("username", { ascending: true });
+
+        if (error) {
+            console.error("Editor directory loading error:", error);
+            return;
+        }
+
+        container.innerHTML = "";
+
+        if (!data || data.length === 0) {
+
+            container.innerHTML = `
+                <div class="staff-empty">
+                    <h3>No Editors Found</h3>
+                    <p>No editor accounts have been created yet.</p>
+                </div>
+            `;
+
+            return;
+        }
+
+        data.forEach(editor => {
+
+            const displayName = editor.username || "Unnamed Editor";
+
+            const initials =
+                displayName
+                    .trim()
+                    .split(/\s+/)
+                    .map(word => word.charAt(0))
+                    .join("")
+                    .substring(0, 2)
+                    .toUpperCase();
+
+            const card = document.createElement("div");
+            card.className = "editor-card";
+
+            card.innerHTML = `
+
+                <div class="editor-avatar" style="display:flex;align-items:center;justify-content:center;font-weight:700;color:#aaa;">
+                    ${escapeHTML(initials)}
+                </div>
+
+                <div class="editor-info">
+                    <h3>${escapeHTML(displayName)}</h3>
+                    <p>Editor</p>
+                </div>
+
+            `;
+
+            container.appendChild(card);
+
+        });
+
+    } catch (error) {
+        console.error("Unexpected editor directory error:", error);
+    }
+
+}
 function displayHomepageDepartments() {
 
     const container =
@@ -3887,209 +3961,213 @@ function removeRank(index) {
 
 function displayStatusManagement() {
 
-    const container =
-        document.getElementById(
-            "statusManagementList"
-        );
+    const container = document.getElementById("statusManagementList");
 
-
-    if (!container) {
-        return;
-    }
-
-
-    const statuses =
-        getStatuses();
-
+    if (!container) return;
 
     container.innerHTML = "";
 
+    if (statusDatabase.length === 0) {
 
-    statuses.forEach(
-        (status, index) => {
+        container.innerHTML = `
+            <div class="management-empty">
+                No statuses have been created.
+            </div>
+        `;
 
-            const item =
-                document.createElement(
-                    "div"
-                );
+        return;
+    }
 
+    statusDatabase.forEach(status => {
 
-            item.className =
-                "management-item";
+        const item = document.createElement("div");
+        item.className = "management-item";
 
+        item.innerHTML = `
 
-            item.innerHTML = `
+            <div class="management-status-row">
+
+                <input
+                    type="color"
+                    class="status-color-input"
+                    value="${escapeHTML(status.color)}"
+                    onchange="updateStatusColor('${status.id}', this.value)"
+                >
 
                 <span class="management-name">
-
-                    ${escapeHTML(status)}
-
+                    ${escapeHTML(status.name)}
                 </span>
 
+            </div>
 
-                <div class="management-actions">
+            <div class="management-actions">
 
-                    <button
-                        class="management-button"
-                        onclick="editStatus(${index})"
-                    >
-                        Edit
-                    </button>
+                <button class="management-button" onclick="editStatus('${status.id}')">
+                    Edit
+                </button>
+
+                <button class="management-button delete" onclick="removeStatus('${status.id}')">
+                    Remove
+                </button>
+
+            </div>
+
+        `;
+
+        container.appendChild(item);
+
+    });
+
+}
 
 
-                    <button
-                        class="management-button delete"
-                        onclick="removeStatus(${index})"
-                    >
-                        Remove
-                    </button>
+async function addStatus() {
 
-                </div>
+    const name = prompt("Enter the name of the new status:");
+    if (!name) return;
 
-            `;
+    const cleanName = name.trim();
+    if (!cleanName) return;
 
-
-            container.appendChild(item);
-
-        }
+    const exists = statusDatabase.some(
+        status => status.name.toLowerCase() === cleanName.toLowerCase()
     );
 
-}
-
-
-function addStatus() {
-
-    const name =
-        prompt(
-            "Enter the name of the new status:"
-        );
-
-
-    if (!name) {
-        return;
-    }
-
-
-    const cleanName =
-        name.trim();
-
-
-    if (!cleanName) {
-        return;
-    }
-
-
-    const statuses =
-        getStatuses();
-
-
-    const exists =
-        statuses.some(
-            status =>
-                status.toLowerCase() ===
-                cleanName.toLowerCase()
-        );
-
-
     if (exists) {
-
-        alert(
-            "That status already exists."
-        );
-
+        alert("That status already exists.");
         return;
-
     }
 
+    try {
 
-    statuses.push(cleanName);
+        const { data, error } =
+            await supabaseClient
+                .from("statuses")
+                .insert({ name: cleanName, color: "#5865f2" })
+                .select()
+                .single();
 
-    saveStatuses(statuses);
+        if (error) {
+            alert("Unable to add status:\n\n" + error.message);
+            return;
+        }
 
-    displayStatusManagement();
+        statusDatabase.push({ id: data.id, name: data.name, color: data.color });
 
-    populateStaffFormOptions();
+        displayStatusManagement();
+        loadFilterOptions();
+        populateStaffFormOptions();
+
+    } catch (error) {
+        console.error(error);
+        alert("An unexpected error occurred while adding the status.");
+    }
 
 }
 
 
-function editStatus(index) {
+async function editStatus(id) {
 
-    const statuses =
-        getStatuses();
+    const status = statusDatabase.find(item => String(item.id) === String(id));
+    if (!status) return;
 
+    const newName = prompt("Enter the new status name:", status.name);
+    if (!newName) return;
 
-    const oldName =
-        statuses[index];
+    const cleanName = newName.trim();
+    if (!cleanName) return;
 
+    try {
 
-    const newName =
-        prompt(
-            "Enter the new status name:",
-            oldName
-        );
+        const { data, error } =
+            await supabaseClient
+                .from("statuses")
+                .update({ name: cleanName })
+                .eq("id", id)
+                .select()
+                .single();
 
+        if (error) {
+            alert("Unable to update status:\n\n" + error.message);
+            return;
+        }
 
-    if (!newName) {
-        return;
+        status.name = data.name;
+
+        displayStatusManagement();
+        loadFilterOptions();
+        populateStaffFormOptions();
+        displayStaff();
+        displayEditorStaff();
+
+    } catch (error) {
+        console.error(error);
+        alert("An unexpected error occurred while updating the status.");
     }
-
-
-    const cleanName =
-        newName.trim();
-
-
-    if (!cleanName) {
-        return;
-    }
-
-
-    statuses[index] =
-        cleanName;
-
-
-    saveStatuses(statuses);
-
-    displayStatusManagement();
-
-    populateStaffFormOptions();
 
 }
 
 
-function removeStatus(index) {
+async function updateStatusColor(id, color) {
 
-    const statuses =
-        getStatuses();
+    try {
 
+        const { error } =
+            await supabaseClient
+                .from("statuses")
+                .update({ color: color })
+                .eq("id", id);
 
-    const status =
-        statuses[index];
+        if (error) {
+            alert("Unable to update color:\n\n" + error.message);
+            return;
+        }
 
+        const status = statusDatabase.find(item => String(item.id) === String(id));
+        if (status) status.color = color;
 
-    if (!status) {
-        return;
+        displayStaff();
+        displayEditorStaff();
+
+    } catch (error) {
+        console.error(error);
+        alert("An unexpected error occurred while updating the color.");
     }
 
-
-    const confirmed =
-        confirm(
-            `Are you sure you want to remove "${status}"?`
-        );
+}
 
 
-    if (!confirmed) {
-        return;
+async function removeStatus(id) {
+
+    const status = statusDatabase.find(item => String(item.id) === String(id));
+    if (!status) return;
+
+    const confirmed = confirm(`Are you sure you want to remove "${status.name}"?`);
+    if (!confirmed) return;
+
+    try {
+
+        const { error } =
+            await supabaseClient
+                .from("statuses")
+                .delete()
+                .eq("id", id);
+
+        if (error) {
+            alert("Unable to delete status:\n\n" + error.message);
+            return;
+        }
+
+        statusDatabase = statusDatabase.filter(item => String(item.id) !== String(id));
+
+        displayStatusManagement();
+        loadFilterOptions();
+        populateStaffFormOptions();
+
+    } catch (error) {
+        console.error(error);
+        alert("An unexpected error occurred while removing the status.");
     }
-
-
-    statuses.splice(index, 1);
-
-    saveStatuses(statuses);
-
-    displayStatusManagement();
-
-    populateStaffFormOptions();
 
 }
 
@@ -6130,7 +6208,8 @@ async function removeEditor(
 document.addEventListener(
     "DOMContentLoaded",
     async function () {
-
+        displayHomepageEditors();
+        
         setupEditorLogin();
 
         setupStaffForm();
@@ -6231,6 +6310,8 @@ if (editorForgotPassword) {
         ============================================== */
 
         await loadDepartmentDatabase();
+
+        await loadStatusDatabase();
 
 
         /* =============================================
