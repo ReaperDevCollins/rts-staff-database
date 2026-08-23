@@ -1150,6 +1150,10 @@ async function showEditorPanel() {
 
     displayEditorStaff();
 
+    await loadSpotlightDatabase();
+
+    refreshSpotlightUI();
+
     displayDepartmentManagement();
 
     displayRankManagement();
@@ -6257,12 +6261,17 @@ if (editorForgotPassword) {
 
         await loadRankDatabase();
 
+        await loadStaffDatabase();
+
+        await loadSpotlightDatabase();
+
 
         /* =============================================
            HOMEPAGE
         ============================================== */
 
         displayHomepageDepartments();
+        displayHomepageSpotlights();
 
 
         /* =============================================
@@ -6322,7 +6331,6 @@ if (editorForgotPassword) {
 ===================================================== */
 
 function getDepartmentLogo(departmentName) {
-
     if (!departmentName) {
         return "";
     }
@@ -6343,6 +6351,290 @@ function getDepartmentLogo(departmentName) {
     );
 
 }
+/* =====================================================
+   STAFF SPOTLIGHTS
+===================================================== */
 
+let spotlightDatabase = { month: [], week: [] };
+
+async function loadSpotlightDatabase() {
+
+    try {
+
+        const { data, error } =
+            await supabaseClient
+                .from("spotlights")
+                .select("id, type, staff_id")
+                .order("created_at", { ascending: true });
+
+        if (error) {
+            console.error("Spotlight loading error:", error);
+            spotlightDatabase = { month: [], week: [] };
+            return;
+        }
+
+        spotlightDatabase = { month: [], week: [] };
+
+        (data || []).forEach(row => {
+            if (spotlightDatabase[row.type]) {
+                spotlightDatabase[row.type].push({
+                    id: row.id,
+                    staffId: row.staff_id
+                });
+            }
+        });
+
+    } catch (error) {
+        console.error("Unexpected spotlight error:", error);
+        spotlightDatabase = { month: [], week: [] };
+    }
+
+}
+
+
+function createSpotlightPersonCard(staffId) {
+
+    const member = staffDatabase.find(
+        item => String(item.id) === String(staffId)
+    );
+
+    if (!member) return "";
+
+    const initials =
+        member.username
+            .trim()
+            .split(/\s+/)
+            .map(word => word.charAt(0))
+            .join("")
+            .substring(0, 2)
+            .toUpperCase();
+
+    return `
+
+        <div class="spotlight-person">
+
+            <div class="spotlight-avatar">
+                ${escapeHTML(initials)}
+            </div>
+
+            <h4>${escapeHTML(member.username)}</h4>
+
+            <p>${escapeHTML(member.rank)}</p>
+
+        </div>
+
+    `;
+
+}
+
+
+function displayHomepageSpotlights() {
+
+    const monthContainer = document.getElementById("staffOfMonth");
+    const weekContainer = document.getElementById("staffOfWeek");
+
+    if (monthContainer) {
+
+        if (spotlightDatabase.month.length === 0) {
+
+            monthContainer.innerHTML = `
+                <div class="staff-empty">
+                    <p>No one has been selected yet.</p>
+                </div>
+            `;
+
+        } else {
+
+            monthContainer.innerHTML =
+                spotlightDatabase.month
+                    .map(entry => createSpotlightPersonCard(entry.staffId))
+                    .join("");
+
+        }
+
+    }
+
+    if (weekContainer) {
+
+        if (spotlightDatabase.week.length === 0) {
+
+            weekContainer.innerHTML = `
+                <div class="staff-empty">
+                    <p>No one has been selected yet.</p>
+                </div>
+            `;
+
+        } else {
+
+            weekContainer.innerHTML =
+                spotlightDatabase.week
+                    .map(entry => createSpotlightPersonCard(entry.staffId))
+                    .join("");
+
+        }
+
+    }
+
+}
+
+
+function populateSpotlightAddSelects() {
+
+    ["month", "week"].forEach(type => {
+
+        const select = document.getElementById(`spotlight${type === "month" ? "Month" : "Week"}AddSelect`);
+
+        if (!select) return;
+
+        const alreadyAdded = spotlightDatabase[type].map(entry => String(entry.staffId));
+
+        select.innerHTML = `<option value="">-- Select staff member --</option>`;
+
+        staffDatabase
+            .filter(member => !alreadyAdded.includes(String(member.id)))
+            .forEach(member => {
+
+                const option = document.createElement("option");
+                option.value = member.id;
+                option.textContent = member.username;
+                select.appendChild(option);
+
+            });
+
+    });
+
+}
+
+
+function displaySpotlightManagement(type) {
+
+    const container = document.getElementById(
+        type === "month" ? "spotlightMonthList" : "spotlightWeekList"
+    );
+
+    if (!container) return;
+
+    container.innerHTML = "";
+
+    if (spotlightDatabase[type].length === 0) {
+
+        container.innerHTML = `
+            <div class="management-empty">
+                No one has been added yet.
+            </div>
+        `;
+
+        return;
+    }
+
+    spotlightDatabase[type].forEach(entry => {
+
+        const member = staffDatabase.find(
+            item => String(item.id) === String(entry.staffId)
+        );
+
+        const item = document.createElement("div");
+        item.className = "management-item";
+
+        item.innerHTML = `
+
+            <span class="management-name">
+                ${escapeHTML(member ? member.username : "Unknown Staff Member")}
+            </span>
+
+            <div class="management-actions">
+
+                <button
+                    class="management-button delete"
+                    onclick="removeSpotlightMember('${entry.id}', '${type}')"
+                >
+                    Remove
+                </button>
+
+            </div>
+
+        `;
+
+        container.appendChild(item);
+
+    });
+
+}
+
+
+function refreshSpotlightUI() {
+
+    displaySpotlightManagement("month");
+    displaySpotlightManagement("week");
+    populateSpotlightAddSelects();
+
+}
+
+
+async function addSpotlightMember(type) {
+
+    const select = document.getElementById(
+        type === "month" ? "spotlightMonthAddSelect" : "spotlightWeekAddSelect"
+    );
+
+    const staffId = select?.value;
+
+    if (!staffId) {
+        alert("Please select a staff member first.");
+        return;
+    }
+
+    try {
+
+        const { data, error } =
+            await supabaseClient
+                .from("spotlights")
+                .insert({ type: type, staff_id: staffId })
+                .select()
+                .single();
+
+        if (error) {
+            alert("Unable to add spotlight:\n\n" + error.message);
+            return;
+        }
+
+        spotlightDatabase[type].push({ id: data.id, staffId: data.staff_id });
+
+        refreshSpotlightUI();
+
+    } catch (error) {
+        console.error(error);
+        alert("An unexpected error occurred while adding the spotlight.");
+    }
+
+}
+
+
+async function removeSpotlightMember(id, type) {
+
+    try {
+
+        const { error } =
+            await supabaseClient
+                .from("spotlights")
+                .delete()
+                .eq("id", id);
+
+        if (error) {
+            alert("Unable to remove spotlight:\n\n" + error.message);
+            return;
+        }
+
+        spotlightDatabase[type] =
+            spotlightDatabase[type].filter(entry => String(entry.id) !== String(id));
+
+        refreshSpotlightUI();
+
+    } catch (error) {
+        console.error(error);
+        alert("An unexpected error occurred while removing the spotlight.");
+    }
+
+}
 setupEventListeners();
 setupCreateEditorForm();
