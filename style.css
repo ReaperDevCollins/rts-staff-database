@@ -426,6 +426,172 @@ body {
 .editors-section {
     background: #174c91;
 }
+/* =====================================================
+   STAFF SPOTLIGHTS
+===================================================== */
+
+.spotlight-grid {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(auto-fit, minmax(260px, 1fr));
+
+    gap: 18px;
+
+}
+
+.spotlight-card {
+
+    background: #171920;
+
+    border: 1px solid #292c35;
+
+    border-radius: 13px;
+
+    padding: 28px;
+
+    text-align: center;
+
+}
+
+.spotlight-label {
+
+    color: #b58a28;
+
+    font-size: 11px;
+
+    font-weight: 800;
+
+    letter-spacing: 1px;
+
+    text-transform: uppercase;
+
+    margin-bottom: 18px;
+
+}
+
+.spotlight-content .staff-empty {
+
+    padding: 20px 0;
+
+}
+
+.spotlight-avatar {
+
+    width: 64px;
+
+    height: 64px;
+
+    margin: 0 auto 14px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    border-radius: 50%;
+
+    background: #292d38;
+
+    color: #b58a28;
+
+    font-weight: 800;
+
+    font-size: 18px;
+
+}
+
+.spotlight-content h3 {
+
+    font-size: 18px;
+
+    margin-bottom: 4px;
+
+}
+
+.spotlight-rank {
+
+    color: #858b98;
+
+    font-size: 13px;
+
+    margin-bottom: 10px;
+
+}
+
+.spotlight-department {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 8px;
+
+    color: #9297a4;
+
+    font-size: 13px;
+
+}
+
+.spotlight-content {
+
+    display: flex;
+
+    flex-wrap: wrap;
+
+    justify-content: center;
+
+    gap: 16px;
+
+}
+
+.spotlight-person {
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    width: 110px;
+
+}
+
+.spotlight-person .spotlight-avatar {
+
+    width: 52px;
+
+    height: 52px;
+
+    margin-bottom: 8px;
+
+    font-size: 14px;
+
+}
+
+.spotlight-person h4 {
+
+    font-size: 13px;
+
+    margin-bottom: 2px;
+
+    text-align: center;
+
+}
+
+.spotlight-person p {
+
+    color: #858b98;
+
+    font-size: 11px;
+
+    text-align: center;
+
+}
 
 .editor-grid {
     display: grid;
