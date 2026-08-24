@@ -123,7 +123,8 @@ async function loadRankDatabase() {
 
         rankDatabase = (data || []).map(rank => ({
             id: rank.id,
-            name: rank.name || ""
+            name: rank.name || "",
+            logoUrl: rank.logo_url || ""
         }));
 
         return rankDatabase;
@@ -231,6 +232,9 @@ async function loadStaffDatabase() {
 
                     avatarUrl:
                         member.avatar_url || "",
+
+                    robloxId:
+                        member.roblox_id || "",
 
                     startDate:
                         member.start_date || "",
@@ -775,7 +779,11 @@ function displayStaff() {
 
                 <div>
 
-                    <div class="staff-username">
+                    <div
+                        class="staff-username"
+                        style="cursor:pointer;"
+                        onclick="openEmployeeFile('${staff.id}')"
+                    >
 
                         ${escapeHTML(
                             staff.username
@@ -785,11 +793,17 @@ function displayStaff() {
 
                 </div>
 
-                <div class="staff-rank">
+                <div class="staff-rank" style="display:flex; align-items:center; gap:8px;">
 
-                    ${escapeHTML(
+                    ${
+                        getRankLogo(staff.rank)
+                            ? `<img src="${escapeHTML(getRankLogo(staff.rank))}" alt="" style="width:20px; height:20px; object-fit:contain; border-radius:5px;">`
+                            : ""
+                    }
+
+                    <span>${escapeHTML(
                         staff.rank
-                    )}
+                    )}</span>
 
                 </div>
 
@@ -932,6 +946,10 @@ async function initializeStaffPage() {
     await loadDepartmentDatabase();
 
     await loadStaffDatabase();
+
+    await loadSpotlightCounts();
+
+    await loadDepartmentHistoryDatabase();
 
     loadFilterOptions();
 
@@ -1392,11 +1410,17 @@ function displayEditorStaff() {
                 </div>
 
 
-                <div class="editor-staff-detail">
+                <div class="editor-staff-detail" style="display:flex; align-items:center; gap:6px;">
 
-                    ${escapeHTML(
+                    ${
+                        getRankLogo(member.rank)
+                            ? `<img src="${escapeHTML(getRankLogo(member.rank))}" alt="" style="width:16px; height:16px; object-fit:contain; border-radius:4px;">`
+                            : ""
+                    }
+
+                    <span>${escapeHTML(
                         member.rank
-                    )}
+                    )}</span>
 
                 </div>
 
@@ -1642,6 +1666,12 @@ function openStaffForm(
 
 
         document.getElementById(
+            "staffRobloxId"
+        ).value =
+            member.robloxId || "";
+
+
+        document.getElementById(
             "staffRank"
         ).value =
             member.rank;
@@ -1675,6 +1705,13 @@ function openStaffForm(
 
         updateStaffAvatarPreview();
 
+        populateHistoryFormOptions();
+
+        displayStaffHistoryManagement(staffId);
+
+        const historySection = document.getElementById("staffHistorySection");
+        if (historySection) historySection.classList.remove("hidden");
+
     }
 
     else {
@@ -1687,6 +1724,9 @@ function openStaffForm(
         updateServicePreview();
 
         updateStaffAvatarPreview();
+
+        const historySection = document.getElementById("staffHistorySection");
+        if (historySection) historySection.classList.add("hidden");
 
     }
 
@@ -1765,6 +1805,13 @@ function setupStaffForm() {
             const avatarUrl =
                 document.getElementById(
                     "staffAvatarUrl"
+                )?.value
+                ?.trim()
+                || "";
+
+            const robloxId =
+                document.getElementById(
+                    "staffRobloxId"
                 )?.value
                 ?.trim()
                 || "";
@@ -1894,6 +1941,9 @@ function setupStaffForm() {
                                 avatar_url:
                                     avatarUrl || null,
 
+                                roblox_id:
+                                    robloxId || null,
+
                                 start_date:
                                     startDate,
 
@@ -1956,6 +2006,9 @@ function setupStaffForm() {
                                 avatarUrl:
                                     data.avatar_url || "",
 
+                                robloxId:
+                                    data.roblox_id || "",
+
                                 startDate:
                                     data.start_date || "",
 
@@ -1994,6 +2047,9 @@ function setupStaffForm() {
 
                                 avatar_url:
                                     avatarUrl || null,
+
+                                roblox_id:
+                                    robloxId || null,
 
                                 start_date:
                                     startDate,
@@ -2039,6 +2095,9 @@ function setupStaffForm() {
 
                             avatarUrl:
                                 data.avatar_url || "",
+
+                            robloxId:
+                                data.roblox_id || "",
 
                             startDate:
                                 data.start_date || "",
@@ -3824,7 +3883,15 @@ function displayRankManagement() {
         const item = document.createElement("div");
         item.className = "management-item";
 
+        const logo = getSafeLogoUrl(rank.logoUrl);
+
         item.innerHTML = `
+
+            ${
+                logo
+                    ? `<img src="${escapeHTML(logo)}" alt="" style="width:32px; height:32px; object-fit:contain; border-radius:6px; margin-right:12px;">`
+                    : ""
+            }
 
             <span class="management-name">
                 ${escapeHTML(rank.name)}
@@ -3868,12 +3935,19 @@ async function addRank() {
         return;
     }
 
+    const logoInput = prompt("Enter a logo image URL for this rank (optional, leave blank for none):");
+    const cleanLogo = logoInput ? getSafeLogoUrl(logoInput.trim()) : "";
+
+    if (logoInput && logoInput.trim() && !cleanLogo) {
+        alert("That doesn't look like a valid image URL. The rank will be saved without a logo.");
+    }
+
     try {
 
         const { data, error } =
             await supabaseClient
                 .from("ranks")
-                .insert({ name: cleanName })
+                .insert({ name: cleanName, logo_url: cleanLogo || null })
                 .select()
                 .single();
 
@@ -3882,7 +3956,7 @@ async function addRank() {
             return;
         }
 
-        rankDatabase.push({ id: data.id, name: data.name });
+        rankDatabase.push({ id: data.id, name: data.name, logoUrl: data.logo_url || "" });
 
         displayRankManagement();
         loadFilterOptions();
@@ -3907,12 +3981,31 @@ async function editRank(id) {
     const cleanName = newName.trim();
     if (!cleanName) return;
 
+    const logoInput = prompt(
+        "Enter a logo image URL for this rank (leave blank to remove, cancel to keep unchanged):",
+        rank.logoUrl || ""
+    );
+
+    let logoToSave = rank.logoUrl || "";
+
+    if (logoInput !== null) {
+
+        const cleanLogo = logoInput.trim() ? getSafeLogoUrl(logoInput.trim()) : "";
+
+        if (logoInput.trim() && !cleanLogo) {
+            alert("That doesn't look like a valid image URL. Keeping the previous logo.");
+        } else {
+            logoToSave = cleanLogo;
+        }
+
+    }
+
     try {
 
         const { data, error } =
             await supabaseClient
                 .from("ranks")
-                .update({ name: cleanName })
+                .update({ name: cleanName, logo_url: logoToSave || null })
                 .eq("id", id)
                 .select()
                 .single();
@@ -3923,10 +4016,13 @@ async function editRank(id) {
         }
 
         rank.name = data.name;
+        rank.logoUrl = data.logo_url || "";
 
         displayRankManagement();
         loadFilterOptions();
         populateStaffFormOptions();
+        displayStaff();
+        displayEditorStaff();
 
     } catch (error) {
         console.error(error);
@@ -6421,6 +6517,7 @@ async function loadSpotlightDatabase() {
             await supabaseClient
                 .from("spotlights")
                 .select("id, type, staff_id")
+                .eq("active", true)
                 .order("created_at", { ascending: true });
 
         if (error) {
@@ -6679,7 +6776,7 @@ async function removeSpotlightMember(id, type) {
         const { error } =
             await supabaseClient
                 .from("spotlights")
-                .delete()
+                .update({ active: false })
                 .eq("id", id);
 
         if (error) {
@@ -6695,6 +6792,466 @@ async function removeSpotlightMember(id, type) {
     } catch (error) {
         console.error(error);
         alert("An unexpected error occurred while removing the spotlight.");
+    }
+
+}
+
+
+/* =====================================================
+   SPOTLIGHT LIFETIME COUNTS (for Employee File)
+===================================================== */
+
+let spotlightCounts = { month: {}, week: {} };
+
+async function loadSpotlightCounts() {
+
+    try {
+
+        const { data, error } =
+            await supabaseClient
+                .from("spotlights")
+                .select("type, staff_id");
+
+        if (error) {
+            console.error("Spotlight count loading error:", error);
+            spotlightCounts = { month: {}, week: {} };
+            return;
+        }
+
+        spotlightCounts = { month: {}, week: {} };
+
+        (data || []).forEach(row => {
+
+            if (!spotlightCounts[row.type]) return;
+
+            const key = String(row.staff_id);
+
+            spotlightCounts[row.type][key] =
+                (spotlightCounts[row.type][key] || 0) + 1;
+
+        });
+
+    } catch (error) {
+        console.error("Unexpected spotlight count error:", error);
+        spotlightCounts = { month: {}, week: {} };
+    }
+
+}
+
+
+/* =====================================================
+   STAFF DEPARTMENT HISTORY
+===================================================== */
+
+let departmentHistoryDatabase = [];
+
+async function loadDepartmentHistoryDatabase() {
+
+    try {
+
+        const { data, error } =
+            await supabaseClient
+                .from("staff_department_history")
+                .select("*")
+                .order("start_date", { ascending: false });
+
+        if (error) {
+            console.error("Department history loading error:", error);
+            departmentHistoryDatabase = [];
+            return [];
+        }
+
+        departmentHistoryDatabase = (data || []).map(entry => ({
+            id: entry.id,
+            staffId: entry.staff_id,
+            department: entry.department || "",
+            rank: entry.rank || "",
+            status: entry.status || "",
+            startDate: entry.start_date || "",
+            endDate: entry.end_date || ""
+        }));
+
+        return departmentHistoryDatabase;
+
+    } catch (error) {
+        console.error("Unexpected department history error:", error);
+        departmentHistoryDatabase = [];
+        return [];
+    }
+
+}
+
+
+function populateHistoryFormOptions() {
+
+    const departmentSelect = document.getElementById("historyDepartment");
+    const rankSelect = document.getElementById("historyRank");
+    const statusSelect = document.getElementById("historyStatus");
+
+    if (departmentSelect) {
+
+        departmentSelect.innerHTML = "";
+
+        departmentDatabase.forEach(department => {
+            const option = document.createElement("option");
+            option.value = department.name;
+            option.textContent = department.name;
+            departmentSelect.appendChild(option);
+        });
+
+    }
+
+    if (rankSelect) {
+
+        rankSelect.innerHTML = "";
+
+        rankDatabase.forEach(rank => {
+            const option = document.createElement("option");
+            option.value = rank.name;
+            option.textContent = rank.name;
+            rankSelect.appendChild(option);
+        });
+
+    }
+
+    if (statusSelect) {
+
+        statusSelect.innerHTML = "";
+
+        statusDatabase.forEach(status => {
+            const option = document.createElement("option");
+            option.value = status.name;
+            option.textContent = status.name;
+            statusSelect.appendChild(option);
+        });
+
+    }
+
+}
+
+
+function displayStaffHistoryManagement(staffId) {
+
+    const container = document.getElementById("staffHistoryList");
+
+    if (!container) return;
+
+    const entries = departmentHistoryDatabase.filter(
+        entry => String(entry.staffId) === String(staffId)
+    );
+
+    container.innerHTML = "";
+
+    if (entries.length === 0) {
+
+        container.innerHTML = `
+            <div class="management-empty">
+                No past departments added yet.
+            </div>
+        `;
+
+        return;
+    }
+
+    entries.forEach(entry => {
+
+        const item = document.createElement("div");
+        item.className = "management-item";
+
+        const days = calculateServiceDays(entry.startDate, entry.endDate);
+
+        item.innerHTML = `
+
+            <div>
+
+                <span class="management-name">
+                    ${escapeHTML(entry.department)}
+                </span>
+
+                <small style="display:block; color:#858b98; margin-top:3px;">
+                    ${escapeHTML(entry.rank || "")}${entry.rank && entry.status ? " · " : ""}${escapeHTML(entry.status || "")}${(entry.rank || entry.status) ? " · " : ""}${days} Days
+                </small>
+
+            </div>
+
+            <div class="management-actions">
+
+                <button
+                    class="management-button delete"
+                    onclick="removeDepartmentHistoryEntry('${entry.id}', '${staffId}')"
+                >
+                    Remove
+                </button>
+
+            </div>
+
+        `;
+
+        container.appendChild(item);
+
+    });
+
+}
+
+
+async function addDepartmentHistoryEntry() {
+
+    if (editingStaffId === null) {
+        alert("Save this staff member first before adding department history.");
+        return;
+    }
+
+    const department = document.getElementById("historyDepartment")?.value;
+    const rank = document.getElementById("historyRank")?.value;
+    const status = document.getElementById("historyStatus")?.value;
+    const startDate = document.getElementById("historyStartDate")?.value;
+    const endDate = document.getElementById("historyEndDate")?.value;
+
+    if (!department) {
+        alert("Please select a department.");
+        return;
+    }
+
+    if (!startDate) {
+        alert("Please enter a start date.");
+        return;
+    }
+
+    if (endDate && endDate < startDate) {
+        alert("The end date cannot be before the start date.");
+        return;
+    }
+
+    try {
+
+        const { data, error } =
+            await supabaseClient
+                .from("staff_department_history")
+                .insert({
+                    staff_id: editingStaffId,
+                    department: department,
+                    rank: rank || null,
+                    status: status || null,
+                    start_date: startDate,
+                    end_date: endDate || null
+                })
+                .select()
+                .single();
+
+        if (error) {
+            alert("Unable to add past department:\n\n" + error.message);
+            return;
+        }
+
+        departmentHistoryDatabase.push({
+            id: data.id,
+            staffId: data.staff_id,
+            department: data.department,
+            rank: data.rank || "",
+            status: data.status || "",
+            startDate: data.start_date || "",
+            endDate: data.end_date || ""
+        });
+
+        displayStaffHistoryManagement(editingStaffId);
+
+        document.getElementById("historyStartDate").value = "";
+        document.getElementById("historyEndDate").value = "";
+
+    } catch (error) {
+        console.error(error);
+        alert("An unexpected error occurred while adding the past department.");
+    }
+
+}
+
+
+async function removeDepartmentHistoryEntry(id, staffId) {
+
+    const confirmed = confirm("Remove this past department entry?");
+    if (!confirmed) return;
+
+    try {
+
+        const { error } =
+            await supabaseClient
+                .from("staff_department_history")
+                .delete()
+                .eq("id", id);
+
+        if (error) {
+            alert("Unable to remove entry:\n\n" + error.message);
+            return;
+        }
+
+        departmentHistoryDatabase =
+            departmentHistoryDatabase.filter(entry => String(entry.id) !== String(id));
+
+        displayStaffHistoryManagement(staffId);
+
+    } catch (error) {
+        console.error(error);
+        alert("An unexpected error occurred while removing the entry.");
+    }
+
+}
+
+
+/* =====================================================
+   EMPLOYEE FILE MODAL (PUBLIC STAFF LIST)
+===================================================== */
+
+function openEmployeeFile(staffId) {
+
+    const modal = document.getElementById("employeeFileModal");
+    const content = document.getElementById("employeeFileContent");
+
+    if (!modal || !content) return;
+
+    const member = staffDatabase.find(
+        item => String(item.id) === String(staffId)
+    );
+
+    if (!member) {
+        alert("Staff member could not be found.");
+        return;
+    }
+
+    const serviceDays = calculateServiceDays(member.startDate, member.endDate);
+    const avatar = getSafeLogoUrl(member.avatarUrl);
+    const departmentLogo = getDepartmentLogo(member.department);
+
+    const monthCount = spotlightCounts.month[String(member.id)] || 0;
+    const weekCount = spotlightCounts.week[String(member.id)] || 0;
+
+    const pastEntries = departmentHistoryDatabase.filter(
+        entry => String(entry.staffId) === String(member.id)
+    );
+
+    content.innerHTML = `
+
+        <h2 style="text-align:center; margin: 5px 0 22px; font-size:24px;">
+            ${escapeHTML(member.username)}
+        </h2>
+
+        <div style="display:flex; gap:18px; align-items:flex-start; margin-bottom:20px;">
+
+            <div style="width:88px; height:88px; border-radius:12px; overflow:hidden; background:#292d38; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:26px; color:#aaa;">
+                ${
+                    avatar
+                        ? `<img src="${escapeHTML(avatar)}" alt="" style="width:100%; height:100%; object-fit:cover;">`
+                        : escapeHTML(member.username.charAt(0).toUpperCase())
+                }
+            </div>
+
+            <div style="flex:1; padding-top:4px;">
+
+                ${
+                    member.robloxId
+                        ? `<p style="color:#858b98; font-size:13px; margin-bottom:8px;"><strong style="color:#c7cad2;">Roblox ID:</strong> ${escapeHTML(member.robloxId)}</p>`
+                        : ""
+                }
+
+                <p style="color:#858b98; font-size:13px;"><strong style="color:#c7cad2;">Current Department:</strong> ${escapeHTML(member.department)}</p>
+
+            </div>
+
+        </div>
+
+        <div style="margin-bottom:20px;">
+
+            <p style="color:#858b98; font-size:13px; margin-bottom:6px;"><strong style="color:#c7cad2;">Start Date:</strong> ${formatDate(member.startDate)}</p>
+
+            ${
+                member.endDate
+                    ? `<p style="color:#858b98; font-size:13px; margin-bottom:6px;"><strong style="color:#c7cad2;">End Date:</strong> ${formatDate(member.endDate)}</p>`
+                    : ""
+            }
+
+            <p style="color:#858b98; font-size:13px;"><strong style="color:#c7cad2;">Total Days Served:</strong> ${serviceDays} Days</p>
+
+        </div>
+
+        <div style="text-align:center; margin-bottom:5px;">
+
+            <p style="font-weight:800; font-size:17px; display:flex; align-items:center; justify-content:center; gap:8px; margin:0;">
+
+                ${
+                    getRankLogo(member.rank)
+                        ? `<img src="${escapeHTML(getRankLogo(member.rank))}" alt="" style="width:22px; height:22px; object-fit:contain; border-radius:5px;">`
+                        : ""
+                }
+
+                ${escapeHTML(member.rank)}
+
+                ${
+                    departmentLogo
+                        ? `<img src="${escapeHTML(departmentLogo)}" alt="" style="width:22px; height:22px; object-fit:contain; border-radius:5px;">`
+                        : ""
+                }
+
+            </p>
+
+        </div>
+
+        ${
+            (monthCount > 0 || weekCount > 0)
+                ? `
+                    <div style="border-top:2px solid #b58a28; margin: 20px 0;"></div>
+
+                    <div style="display:flex; justify-content:center; gap:36px;">
+
+                        ${
+                            weekCount > 0
+                                ? `<div style="text-align:center;"><strong style="font-size:20px; color:#b58a28; display:block;">${weekCount}</strong><p style="color:#858b98; font-size:11px; margin-top:2px;">Staff of the Week</p></div>`
+                                : ""
+                        }
+
+                        ${
+                            monthCount > 0
+                                ? `<div style="text-align:center;"><strong style="font-size:20px; color:#b58a28; display:block;">${monthCount}</strong><p style="color:#858b98; font-size:11px; margin-top:2px;">Staff of the Month</p></div>`
+                                : ""
+                        }
+
+                    </div>
+                `
+                : ""
+        }
+
+        ${
+            pastEntries.length > 0
+                ? `
+                    <div style="border-top:2px solid #b58a28; margin: 20px 0 15px;"></div>
+
+                    <p style="font-weight:800; font-size:13px; margin-bottom:12px; color:#c7cad2; text-transform:uppercase; letter-spacing:0.5px;">
+                        Past Departments
+                    </p>
+
+                    ${pastEntries.map(entry => `
+                        <div style="padding:10px 0; border-bottom:1px solid #242730;">
+                            <p style="font-weight:700; font-size:14px; margin-bottom:3px;">${escapeHTML(entry.department)}</p>
+                            <p style="color:#858b98; font-size:12px;">
+                                ${entry.rank ? escapeHTML(entry.rank) + " &middot; " : ""}${entry.status ? escapeHTML(entry.status) + " &middot; " : ""}${calculateServiceDays(entry.startDate, entry.endDate)} Days
+                            </p>
+                        </div>
+                    `).join("")}
+                `
+                : ""
+        }
+
+    `;
+
+    modal.classList.remove("hidden");
+
+}
+
+
+function closeEmployeeFile() {
+
+    const modal = document.getElementById("employeeFileModal");
+
+    if (modal) {
+        modal.classList.add("hidden");
     }
 
 }
@@ -6723,6 +7280,34 @@ function getDepartmentLogo(departmentName) {
 
     return getSafeLogoUrl(
         department.logoUrl
+    );
+
+}
+
+
+/* =====================================================
+   GET RANK LOGO
+===================================================== */
+
+function getRankLogo(rankName) {
+
+    if (!rankName) {
+        return "";
+    }
+
+    const rank =
+        rankDatabase.find(
+            rank =>
+                rank.name.toLowerCase() ===
+                rankName.toLowerCase()
+        );
+
+    if (!rank) {
+        return "";
+    }
+
+    return getSafeLogoUrl(
+        rank.logoUrl
     );
 
 }
