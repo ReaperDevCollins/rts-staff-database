@@ -519,8 +519,18 @@
 
                 </div>
 
-                <button type="button" class="management-add-button" onclick="addDepartmentHistoryEntry()">
+                <button type="button" id="historyAddButton" class="management-add-button" onclick="addDepartmentHistoryEntry()">
                     + Add Past Department
+                </button>
+
+                <button
+                    type="button"
+                    id="historyCancelButton"
+                    class="management-button hidden"
+                    onclick="cancelHistoryEdit()"
+                    style="margin-left:8px;"
+                >
+                    Cancel
                 </button>
 
             </div>
