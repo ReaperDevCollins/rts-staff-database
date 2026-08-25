@@ -1177,6 +1177,8 @@ async function showEditorPanel() {
 
     displayStatusManagement();
 
+    await loadDepartmentHistoryDatabase();
+
     await loadSpotlightDatabase();
 
     refreshSpotlightUI();
@@ -1706,6 +1708,8 @@ function openStaffForm(
         updateStaffAvatarPreview();
 
         populateHistoryFormOptions();
+
+        cancelHistoryEdit();
 
         displayStaffHistoryManagement(staffId);
 
@@ -6845,6 +6849,8 @@ async function loadSpotlightCounts() {
 
 let departmentHistoryDatabase = [];
 
+let editingHistoryId = null;
+
 async function loadDepartmentHistoryDatabase() {
 
     try {
@@ -6977,6 +6983,13 @@ function displayStaffHistoryManagement(staffId) {
             <div class="management-actions">
 
                 <button
+                    class="management-button"
+                    onclick="editDepartmentHistoryEntry('${entry.id}')"
+                >
+                    Edit
+                </button>
+
+                <button
                     class="management-button delete"
                     onclick="removeDepartmentHistoryEntry('${entry.id}', '${staffId}')"
                 >
@@ -7022,46 +7035,131 @@ async function addDepartmentHistoryEntry() {
         return;
     }
 
+    const isEditing = editingHistoryId !== null;
+
     try {
 
-        const { data, error } =
-            await supabaseClient
-                .from("staff_department_history")
-                .insert({
-                    staff_id: editingStaffId,
-                    department: department,
-                    rank: rank || null,
-                    status: status || null,
-                    start_date: startDate,
-                    end_date: endDate || null
-                })
-                .select()
-                .single();
+        let data, error;
+
+        if (isEditing) {
+
+            ({ data, error } =
+                await supabaseClient
+                    .from("staff_department_history")
+                    .update({
+                        department: department,
+                        rank: rank || null,
+                        status: status || null,
+                        start_date: startDate,
+                        end_date: endDate || null
+                    })
+                    .eq("id", editingHistoryId)
+                    .select()
+                    .single());
+
+        } else {
+
+            ({ data, error } =
+                await supabaseClient
+                    .from("staff_department_history")
+                    .insert({
+                        staff_id: editingStaffId,
+                        department: department,
+                        rank: rank || null,
+                        status: status || null,
+                        start_date: startDate,
+                        end_date: endDate || null
+                    })
+                    .select()
+                    .single());
+
+        }
 
         if (error) {
-            alert("Unable to add past department:\n\n" + error.message);
+            alert(`Unable to ${isEditing ? "update" : "add"} past department:\n\n` + error.message);
             return;
         }
 
-        departmentHistoryDatabase.push({
-            id: data.id,
-            staffId: data.staff_id,
-            department: data.department,
-            rank: data.rank || "",
-            status: data.status || "",
-            startDate: data.start_date || "",
-            endDate: data.end_date || ""
-        });
+        if (isEditing) {
+
+            const entry = departmentHistoryDatabase.find(
+                item => String(item.id) === String(editingHistoryId)
+            );
+
+            if (entry) {
+                entry.department = data.department;
+                entry.rank = data.rank || "";
+                entry.status = data.status || "";
+                entry.startDate = data.start_date || "";
+                entry.endDate = data.end_date || "";
+            }
+
+        } else {
+
+            departmentHistoryDatabase.push({
+                id: data.id,
+                staffId: data.staff_id,
+                department: data.department,
+                rank: data.rank || "",
+                status: data.status || "",
+                startDate: data.start_date || "",
+                endDate: data.end_date || ""
+            });
+
+        }
+
+        cancelHistoryEdit();
 
         displayStaffHistoryManagement(editingStaffId);
 
-        document.getElementById("historyStartDate").value = "";
-        document.getElementById("historyEndDate").value = "";
-
     } catch (error) {
         console.error(error);
-        alert("An unexpected error occurred while adding the past department.");
+        alert(`An unexpected error occurred while ${isEditing ? "updating" : "adding"} the past department.`);
     }
+
+}
+
+
+function editDepartmentHistoryEntry(id) {
+
+    const entry = departmentHistoryDatabase.find(item => String(item.id) === String(id));
+    if (!entry) return;
+
+    editingHistoryId = id;
+
+    const departmentSelect = document.getElementById("historyDepartment");
+    const rankSelect = document.getElementById("historyRank");
+    const statusSelect = document.getElementById("historyStatus");
+    const startInput = document.getElementById("historyStartDate");
+    const endInput = document.getElementById("historyEndDate");
+    const addButton = document.getElementById("historyAddButton");
+    const cancelButton = document.getElementById("historyCancelButton");
+
+    if (departmentSelect) departmentSelect.value = entry.department;
+    if (rankSelect) rankSelect.value = entry.rank || "";
+    if (statusSelect) statusSelect.value = entry.status || "";
+    if (startInput) startInput.value = entry.startDate || "";
+    if (endInput) endInput.value = entry.endDate || "";
+
+    if (addButton) addButton.textContent = "Save Changes";
+    if (cancelButton) cancelButton.classList.remove("hidden");
+
+}
+
+
+function cancelHistoryEdit() {
+
+    editingHistoryId = null;
+
+    const startInput = document.getElementById("historyStartDate");
+    const endInput = document.getElementById("historyEndDate");
+    const addButton = document.getElementById("historyAddButton");
+    const cancelButton = document.getElementById("historyCancelButton");
+
+    if (startInput) startInput.value = "";
+    if (endInput) endInput.value = "";
+    if (addButton) addButton.textContent = "+ Add Past Department";
+    if (cancelButton) cancelButton.classList.add("hidden");
 
 }
 
