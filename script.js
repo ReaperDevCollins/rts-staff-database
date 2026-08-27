@@ -1181,6 +1181,10 @@ async function showEditorPanel() {
 
     await loadSpotlightDatabase();
 
+    await loadSocialPostDatabase();
+
+    displaySocialPostManagement();
+
     refreshSpotlightUI();
 
 }
@@ -3272,76 +3276,331 @@ function displayDepartmentPage() {
 
 
 /* =====================================================
-   HOMEPAGE EDITORS
+   YOUTUBE THUMBNAIL HELPER
 ===================================================== */
-async function displayHomepageEditors() {
 
-    const container = document.getElementById("editorList");
+function getYouTubeThumbnail(url) {
 
-    if (!container) return;
+    if (!url) return "";
+
+    const match = url.match(
+        /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/
+    );
+
+    if (match && match[1]) {
+        return `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg`;
+    }
+
+    return "";
+
+}
+
+
+/* =====================================================
+   SOCIAL MEDIA POSTS
+===================================================== */
+
+let socialPostDatabase = [];
+
+async function loadSocialPostDatabase() {
 
     try {
 
         const { data, error } =
             await supabaseClient
-                .from("editors")
-                .select("id, username")
-                .order("username", { ascending: true });
+                .from("social_posts")
+                .select("*")
+                .order("created_at", { ascending: false });
 
         if (error) {
-            console.error("Editor directory loading error:", error);
-            return;
+            console.error("Social post loading error:", error);
+            socialPostDatabase = [];
+            return [];
         }
 
-        container.innerHTML = "";
+        socialPostDatabase = (data || []).map(post => ({
+            id: post.id,
+            title: post.title || "",
+            videoUrl: post.video_url || "",
+            thumbnailUrl: post.thumbnail_url || "",
+            createdAt: post.created_at
+        }));
 
-        if (!data || data.length === 0) {
-
-            container.innerHTML = `
-                <div class="staff-empty">
-                    <h3>No Editors Found</h3>
-                    <p>No editor accounts have been created yet.</p>
-                </div>
-            `;
-
-            return;
-        }
-
-        data.forEach(editor => {
-
-            const displayName = editor.username || "Unnamed Editor";
-
-            const initials =
-                displayName
-                    .trim()
-                    .split(/\s+/)
-                    .map(word => word.charAt(0))
-                    .join("")
-                    .substring(0, 2)
-                    .toUpperCase();
-
-            const card = document.createElement("div");
-            card.className = "editor-card";
-
-            card.innerHTML = `
-
-                <div class="editor-avatar" style="display:flex;align-items:center;justify-content:center;font-weight:700;color:#aaa;">
-                    ${escapeHTML(initials)}
-                </div>
-
-                <div class="editor-info">
-                    <h3>${escapeHTML(displayName)}</h3>
-                    <p>Editor</p>
-                </div>
-
-            `;
-
-            container.appendChild(card);
-
-        });
+        return socialPostDatabase;
 
     } catch (error) {
-        console.error("Unexpected editor directory error:", error);
+        console.error("Unexpected social post error:", error);
+        socialPostDatabase = [];
+        return [];
+    }
+
+}
+
+
+function createSocialPostCard(post) {
+
+    let thumbnail = getSafeLogoUrl(post.thumbnailUrl);
+
+    if (!thumbnail) {
+        thumbnail = getYouTubeThumbnail(post.videoUrl);
+    }
+
+    const card = document.createElement("a");
+    card.className = "social-card";
+    card.href = post.videoUrl;
+    card.target = "_blank";
+    card.rel = "noopener noreferrer";
+
+    card.innerHTML = `
+
+        ${
+            thumbnail
+                ? `<img src="${escapeHTML(thumbnail)}" alt="" class="social-thumbnail">`
+                : `<div class="social-thumbnail-placeholder">&#9654;</div>`
+        }
+
+        <div class="social-card-title">
+            ${escapeHTML(post.title)}
+        </div>
+
+    `;
+
+    return card;
+
+}
+
+
+function displayHomepageSocialPosts() {
+
+    const container = document.getElementById("socialPostList");
+
+    if (!container) return;
+
+    container.innerHTML = "";
+
+    if (socialPostDatabase.length === 0) {
+
+        container.innerHTML = `
+            <div class="staff-empty">
+                <h3>No Videos Yet</h3>
+                <p>Check back soon for the latest content.</p>
+            </div>
+        `;
+
+        return;
+    }
+
+    socialPostDatabase.slice(0, 4).forEach(post => {
+        container.appendChild(createSocialPostCard(post));
+    });
+
+}
+
+
+function displaySocialPostManagement() {
+
+    const container = document.getElementById("socialPostManagementList");
+
+    if (!container) return;
+
+    container.innerHTML = "";
+
+    if (socialPostDatabase.length === 0) {
+
+        container.innerHTML = `
+            <div class="management-empty">
+                No videos have been added yet.
+            </div>
+        `;
+
+        return;
+    }
+
+    socialPostDatabase.forEach(post => {
+
+        const item = document.createElement("div");
+        item.className = "management-item";
+
+        item.innerHTML = `
+
+            <span class="management-name">
+                ${escapeHTML(post.title)}
+            </span>
+
+            <div class="management-actions">
+
+                <button class="management-button" onclick="editSocialPost('${post.id}')">
+                    Edit
+                </button>
+
+                <button class="management-button delete" onclick="removeSocialPost('${post.id}')">
+                    Remove
+                </button>
+
+            </div>
+
+        `;
+
+        container.appendChild(item);
+
+    });
+
+}
+
+
+async function addSocialPost() {
+
+    const title = prompt("Enter a title for this video:");
+    if (!title) return;
+
+    const cleanTitle = title.trim();
+    if (!cleanTitle) return;
+
+    const videoUrl = prompt("Enter the video URL (YouTube, TikTok, etc.):");
+    if (!videoUrl) return;
+
+    const cleanVideoUrl = getSafeLogoUrl(videoUrl.trim());
+
+    if (!cleanVideoUrl) {
+        alert("Please enter a valid URL beginning with http:// or https://.");
+        return;
+    }
+
+    const thumbnailInput = prompt(
+        "Enter a thumbnail image URL (optional \u2014 leave blank to auto-detect for YouTube):"
+    );
+
+    const cleanThumbnail = thumbnailInput ? getSafeLogoUrl(thumbnailInput.trim()) : "";
+
+    try {
+
+        const { data, error } =
+            await supabaseClient
+                .from("social_posts")
+                .insert({
+                    title: cleanTitle,
+                    video_url: cleanVideoUrl,
+                    thumbnail_url: cleanThumbnail || null
+                })
+                .select()
+                .single();
+
+        if (error) {
+            alert("Unable to add video:\n\n" + error.message);
+            return;
+        }
+
+        socialPostDatabase.unshift({
+            id: data.id,
+            title: data.title,
+            videoUrl: data.video_url,
+            thumbnailUrl: data.thumbnail_url || "",
+            createdAt: data.created_at
+        });
+
+        displaySocialPostManagement();
+        displayHomepageSocialPosts();
+
+    } catch (error) {
+        console.error(error);
+        alert("An unexpected error occurred while adding the video.");
+    }
+
+}
+
+
+async function editSocialPost(id) {
+
+    const post = socialPostDatabase.find(item => String(item.id) === String(id));
+    if (!post) return;
+
+    const newTitle = prompt("Enter the new title:", post.title);
+    if (!newTitle) return;
+
+    const cleanTitle = newTitle.trim();
+    if (!cleanTitle) return;
+
+    const newVideoUrl = prompt("Enter the new video URL:", post.videoUrl);
+    if (!newVideoUrl) return;
+
+    const cleanVideoUrl = getSafeLogoUrl(newVideoUrl.trim());
+
+    if (!cleanVideoUrl) {
+        alert("Please enter a valid URL beginning with http:// or https://.");
+        return;
+    }
+
+    const newThumbnail = prompt(
+        "Enter a thumbnail image URL (optional):",
+        post.thumbnailUrl
+    );
+
+    const cleanThumbnail = newThumbnail ? getSafeLogoUrl(newThumbnail.trim()) : "";
+
+    try {
+
+        const { data, error } =
+            await supabaseClient
+                .from("social_posts")
+                .update({
+                    title: cleanTitle,
+                    video_url: cleanVideoUrl,
+                    thumbnail_url: cleanThumbnail || null
+                })
+                .eq("id", id)
+                .select()
+                .single();
+
+        if (error) {
+            alert("Unable to update video:\n\n" + error.message);
+            return;
+        }
+
+        post.title = data.title;
+        post.videoUrl = data.video_url;
+        post.thumbnailUrl = data.thumbnail_url || "";
+
+        displaySocialPostManagement();
+        displayHomepageSocialPosts();
+
+    } catch (error) {
+        console.error(error);
+        alert("An unexpected error occurred while updating the video.");
+    }
+
+}
+
+
+async function removeSocialPost(id) {
+
+    const post = socialPostDatabase.find(item => String(item.id) === String(id));
+    if (!post) return;
+
+    const confirmed = confirm(`Remove "${post.title}" from the social media section?`);
+    if (!confirmed) return;
+
+    try {
+
+        const { error } =
+            await supabaseClient
+                .from("social_posts")
+                .delete()
+                .eq("id", id);
+
+        if (error) {
+            alert("Unable to remove video:\n\n" + error.message);
+            return;
+        }
+
+        socialPostDatabase =
+            socialPostDatabase.filter(item => String(item.id) !== String(id));
+
+        displaySocialPostManagement();
+        displayHomepageSocialPosts();
+
+    } catch (error) {
+        console.error(error);
+        alert("An unexpected error occurred while removing the video.");
     }
 
 }
@@ -6334,8 +6593,6 @@ async function removeEditor(
 document.addEventListener(
     "DOMContentLoaded",
     async function () {
-        displayHomepageEditors();
-        
         setupEditorLogin();
 
         setupStaffForm();
@@ -6445,6 +6702,8 @@ if (editorForgotPassword) {
 
         await loadSpotlightDatabase();
 
+        await loadSocialPostDatabase();
+
 
         /* =============================================
            HOMEPAGE
@@ -6453,6 +6712,8 @@ if (editorForgotPassword) {
         displayHomepageDepartments();
 
         displayHomepageSpotlights();
+
+        displayHomepageSocialPosts();
 
 
         /* =============================================
