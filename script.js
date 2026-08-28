@@ -236,6 +236,9 @@ async function loadStaffDatabase() {
                     robloxId:
                         member.roblox_id || "",
 
+                    websiteRole:
+                        member.website_role || "N/A",
+
                     startDate:
                         member.start_date || "",
 
@@ -1185,6 +1188,8 @@ async function showEditorPanel() {
 
     displaySocialPostManagement();
 
+    displayWebsiteRoleManagement();
+
     refreshSpotlightUI();
 
 }
@@ -1677,6 +1682,14 @@ function openStaffForm(
             member.robloxId || "";
 
 
+        populateWebsiteRoleFormOptions();
+
+        document.getElementById(
+            "staffWebsiteRole"
+        ).value =
+            member.websiteRole || "N/A";
+
+
         document.getElementById(
             "staffRank"
         ).value =
@@ -1728,6 +1741,12 @@ function openStaffForm(
             "staffFormTitle"
         ).textContent =
             "Add Staff Member";
+
+        populateWebsiteRoleFormOptions();
+
+        document.getElementById(
+            "staffWebsiteRole"
+        ).value = "N/A";
 
         updateServicePreview();
 
@@ -1823,6 +1842,12 @@ function setupStaffForm() {
                 )?.value
                 ?.trim()
                 || "";
+
+            const websiteRole =
+                document.getElementById(
+                    "staffWebsiteRole"
+                )?.value
+                || "N/A";
 
             const startDate =
                 document.getElementById(
@@ -1952,6 +1977,9 @@ function setupStaffForm() {
                                 roblox_id:
                                     robloxId || null,
 
+                                website_role:
+                                    websiteRole,
+
                                 start_date:
                                     startDate,
 
@@ -2017,6 +2045,9 @@ function setupStaffForm() {
                                 robloxId:
                                     data.roblox_id || "",
 
+                                websiteRole:
+                                    data.website_role || "N/A",
+
                                 startDate:
                                     data.start_date || "",
 
@@ -2058,6 +2089,9 @@ function setupStaffForm() {
 
                                 roblox_id:
                                     robloxId || null,
+
+                                website_role:
+                                    websiteRole,
 
                                 start_date:
                                     startDate,
@@ -2106,6 +2140,9 @@ function setupStaffForm() {
 
                             robloxId:
                                 data.roblox_id || "",
+
+                            websiteRole:
+                                data.website_role || "N/A",
 
                             startDate:
                                 data.start_date || "",
@@ -6698,6 +6735,8 @@ if (editorForgotPassword) {
 
         await loadRankDatabase();
 
+        await loadWebsiteRoleDatabase();
+
         await loadStaffDatabase();
 
         await loadSpotlightDatabase();
@@ -7487,7 +7526,43 @@ function openEmployeeFile(staffId) {
         entry => String(entry.staffId) === String(member.id)
     );
 
+    const roleConfig = getWebsiteRoleConfig(member.websiteRole);
+
     content.innerHTML = `
+
+        ${
+            roleConfig
+                ? `
+                    <div style="display:flex; justify-content:center; margin-bottom:10px;">
+
+                        <div style="
+                            display:inline-flex;
+                            align-items:center;
+                            gap:6px;
+                            padding:5px 12px;
+                            border-radius:20px;
+                            background:${escapeHTML(roleConfig.color)}33;
+                            color:${escapeHTML(roleConfig.color)};
+                            font-size:11px;
+                            font-weight:800;
+                            text-transform:uppercase;
+                            letter-spacing:0.5px;
+                        ">
+
+                            ${
+                                getSafeLogoUrl(roleConfig.iconUrl)
+                                    ? `<img src="${escapeHTML(getSafeLogoUrl(roleConfig.iconUrl))}" alt="" style="width:14px; height:14px; object-fit:contain;">`
+                                    : ""
+                            }
+
+                            ${escapeHTML(roleConfig.label)}
+
+                        </div>
+
+                    </div>
+                `
+                : ""
+        }
 
         <h2 style="text-align:center; margin: 5px 0 22px; font-size:24px;">
             ${escapeHTML(member.username)}
@@ -7668,6 +7743,202 @@ function getRankLogo(rankName) {
     return getSafeLogoUrl(
         rank.logoUrl
     );
+
+}
+
+
+/* =====================================================
+   WEBSITE ROLES
+===================================================== */
+
+let websiteRoleDatabase = [];
+
+async function loadWebsiteRoleDatabase() {
+
+    try {
+
+        const { data, error } =
+            await supabaseClient
+                .from("website_roles")
+                .select("*");
+
+        if (error) {
+            console.error("Website role loading error:", error);
+            websiteRoleDatabase = [];
+            return [];
+        }
+
+        websiteRoleDatabase = (data || []).map(role => ({
+            id: role.id,
+            label: role.label || "",
+            iconUrl: role.icon_url || "",
+            color: role.color || "#5865f2"
+        }));
+
+        return websiteRoleDatabase;
+
+    } catch (error) {
+        console.error("Unexpected website role error:", error);
+        websiteRoleDatabase = [];
+        return [];
+    }
+
+}
+
+
+function getWebsiteRoleConfig(roleId) {
+
+    if (!roleId || roleId === "N/A") return null;
+
+    return websiteRoleDatabase.find(role => role.id === roleId) || null;
+
+}
+
+
+function populateWebsiteRoleFormOptions() {
+
+    const select = document.getElementById("staffWebsiteRole");
+
+    if (!select) return;
+
+    select.innerHTML = `<option value="N/A">N/A</option>`;
+
+    websiteRoleDatabase.forEach(role => {
+
+        const option = document.createElement("option");
+        option.value = role.id;
+        option.textContent = role.label;
+        select.appendChild(option);
+
+    });
+
+}
+
+
+function displayWebsiteRoleManagement() {
+
+    const container = document.getElementById("websiteRoleManagementList");
+
+    if (!container) return;
+
+    container.innerHTML = "";
+
+    websiteRoleDatabase.forEach(role => {
+
+        const item = document.createElement("div");
+        item.className = "management-item";
+
+        const iconPreview = getSafeLogoUrl(role.iconUrl);
+
+        item.innerHTML = `
+
+            <div class="management-status-row">
+
+                <input
+                    type="color"
+                    class="status-color-input"
+                    value="${escapeHTML(role.color)}"
+                    onchange="updateWebsiteRoleColor('${role.id}', this.value)"
+                >
+
+                ${
+                    iconPreview
+                        ? `<img src="${escapeHTML(iconPreview)}" alt="" style="width:28px; height:28px; object-fit:contain; border-radius:6px;">`
+                        : ""
+                }
+
+                <span class="management-name">
+                    ${escapeHTML(role.label)}
+                </span>
+
+            </div>
+
+            <div class="management-actions">
+
+                <button class="management-button" onclick="updateWebsiteRoleIcon('${role.id}')">
+                    Set Icon
+                </button>
+
+            </div>
+
+        `;
+
+        container.appendChild(item);
+
+    });
+
+}
+
+
+async function updateWebsiteRoleColor(id, color) {
+
+    try {
+
+        const { error } =
+            await supabaseClient
+                .from("website_roles")
+                .update({ color: color })
+                .eq("id", id);
+
+        if (error) {
+            alert("Unable to update color:\n\n" + error.message);
+            return;
+        }
+
+        const role = websiteRoleDatabase.find(item => item.id === id);
+        if (role) role.color = color;
+
+        displayStaff();
+        displayEditorStaff();
+
+    } catch (error) {
+        console.error(error);
+        alert("An unexpected error occurred while updating the color.");
+    }
+
+}
+
+
+async function updateWebsiteRoleIcon(id) {
+
+    const role = websiteRoleDatabase.find(item => item.id === id);
+    if (!role) return;
+
+    const iconInput = prompt(
+        "Enter an icon image URL for this role (leave blank to remove):",
+        role.iconUrl || ""
+    );
+
+    if (iconInput === null) return;
+
+    const cleanIcon = iconInput.trim() ? getSafeLogoUrl(iconInput.trim()) : "";
+
+    if (iconInput.trim() && !cleanIcon) {
+        alert("That doesn't look like a valid image URL.");
+        return;
+    }
+
+    try {
+
+        const { error } =
+            await supabaseClient
+                .from("website_roles")
+                .update({ icon_url: cleanIcon || null })
+                .eq("id", id);
+
+        if (error) {
+            alert("Unable to update icon:\n\n" + error.message);
+            return;
+        }
+
+        role.iconUrl = cleanIcon;
+
+        displayWebsiteRoleManagement();
+
+    } catch (error) {
+        console.error(error);
+        alert("An unexpected error occurred while updating the icon.");
+    }
 
 }
 
