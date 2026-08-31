@@ -171,7 +171,10 @@ function mapDepartment(department) {
             department.head || "",
 
         seniorStaff:
-            department.senior_staff || ""
+            department.senior_staff || "",
+
+        headIconUrl:
+            department.head_icon_url || ""
 
     };
 
@@ -2556,6 +2559,12 @@ function openDepartmentEditor(
             department.seniorStaff;
 
 
+        document.getElementById(
+            "departmentHeadIcon"
+        ).value =
+            department.headIconUrl || "";
+
+
     }
 
     else {
@@ -2569,6 +2578,8 @@ function openDepartmentEditor(
 
 
     updateDepartmentLogoPreview();
+
+    updateDepartmentHeadIconPreview();
 
     modal.classList.remove("hidden");
 
@@ -2709,6 +2720,43 @@ function updateDepartmentLogoPreview() {
 
 
 /* =====================================================
+   DEPARTMENT HEAD ICON PREVIEW
+===================================================== */
+
+function updateDepartmentHeadIconPreview() {
+
+    const input = document.getElementById("departmentHeadIcon");
+    const preview = document.getElementById("departmentHeadIconPreview");
+
+    if (!input || !preview) return;
+
+    const url = getSafeLogoUrl(input.value.trim());
+
+    if (!url) {
+        preview.innerHTML = `<span>No Icon</span>`;
+        return;
+    }
+
+    preview.innerHTML = `
+        <img
+            src="${escapeHTML(url)}"
+            alt="Department Head Icon Preview"
+            style="width:100%; height:100%; object-fit:cover; border-radius:inherit;"
+        >
+    `;
+
+    const headIconImage = preview.querySelector("img");
+
+    if (headIconImage) {
+        headIconImage.onerror = function () {
+            preview.innerHTML = `<span>Unable to load image</span>`;
+        };
+    }
+
+}
+
+
+/* =====================================================
    STAFF AVATAR PREVIEW
 ===================================================== */
 
@@ -2808,6 +2856,14 @@ function setupDepartmentForm() {
                 || "";
 
 
+            const headIconUrl =
+                document.getElementById(
+                    "departmentHeadIcon"
+                )?.value
+                ?.trim()
+                || "";
+
+
             if (!name) {
 
                 alert(
@@ -2878,6 +2934,9 @@ function setupDepartmentForm() {
                                 senior_staff:
                                     seniorStaff || null,
 
+                                head_icon_url:
+                                    headIconUrl || null,
+
                                 updated_at:
                                     new Date().toISOString()
 
@@ -2946,7 +3005,10 @@ function setupDepartmentForm() {
                                     head || null,
 
                                 senior_staff:
-                                    seniorStaff || null
+                                    seniorStaff || null,
+
+                                head_icon_url:
+                                    headIconUrl || null
 
                             })
                             .select()
@@ -3890,11 +3952,19 @@ async function displayIndividualDepartment() {
                     .toUpperCase();
 
 
+            const headIcon =
+                getSafeLogoUrl(department.headIconUrl);
+
+
             headContainer.innerHTML = `
 
-                <div class="profile-avatar">
+                <div class="profile-avatar" style="overflow:hidden;">
 
-                    ${escapeHTML(initials)}
+                    ${
+                        headIcon
+                            ? `<img src="${escapeHTML(headIcon)}" alt="" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;">`
+                            : escapeHTML(initials)
+                    }
 
                 </div>
 
@@ -4013,6 +4083,20 @@ async function displayIndividualDepartment() {
                             .toUpperCase();
 
 
+                    const matchedStaff =
+                        staffDatabase.find(
+                            member =>
+                                member.username.toLowerCase() ===
+                                username.toLowerCase()
+                        );
+
+
+                    const seniorAvatar =
+                        matchedStaff
+                            ? getSafeLogoUrl(matchedStaff.avatarUrl)
+                            : "";
+
+
                     const card =
                         document.createElement(
                             "div"
@@ -4025,9 +4109,13 @@ async function displayIndividualDepartment() {
 
                     card.innerHTML = `
 
-                        <div class="profile-avatar">
+                        <div class="profile-avatar" style="margin:0 auto 15px; overflow:hidden;">
 
-                            ${escapeHTML(initials)}
+                            ${
+                                seniorAvatar
+                                    ? `<img src="${escapeHTML(seniorAvatar)}" alt="" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;">`
+                                    : escapeHTML(initials)
+                            }
 
                         </div>
 
@@ -5418,6 +5506,17 @@ function setupEventListeners() {
 
         avatarInput.addEventListener("input", updateStaffAvatarPreview);
         avatarInput.addEventListener("change", updateStaffAvatarPreview);
+
+    }
+
+
+    const headIconInput =
+        document.getElementById("departmentHeadIcon");
+
+    if (headIconInput) {
+
+        headIconInput.addEventListener("input", updateDepartmentHeadIconPreview);
+        headIconInput.addEventListener("change", updateDepartmentHeadIconPreview);
 
     }
 
