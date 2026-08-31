@@ -806,7 +806,35 @@
 
             </div>
 
+            <div class="form-group">
 
+                <label for="departmentHeadIcon">
+                    Department Head Icon URL
+                </label>
+
+                <input
+                    type="url"
+                    id="departmentHeadIcon"
+                    placeholder="https://example.com/head-icon.png"
+                >
+
+                <small>
+                    Optional. Shown instead of initials on the department page.
+                </small>
+
+            </div>
+
+            <div
+                id="departmentHeadIconPreview"
+                class="department-logo-preview-box"
+                style="margin-bottom: 18px;"
+            >
+
+                <span>
+                    No Icon
+                </span>
+
+            </div>
 
             <!-- =================================================
                  SENIOR STAFF
@@ -1160,8 +1188,6 @@
 <script
     src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
 ></script>
-
-
 
 <!-- =====================================================
      RTS JAVASCRIPT
