@@ -242,6 +242,18 @@ async function loadStaffDatabase() {
                     websiteRole:
                         member.website_role || "N/A",
 
+                    subDepartment:
+                        member.sub_department || "N/A",
+
+                    subRank:
+                        member.sub_rank || "N/A",
+
+                    subDepartmentStartDate:
+                        member.sub_department_start_date || "",
+
+                    subDepartmentEndDate:
+                        member.sub_department_end_date || "",
+
                     startDate:
                         member.start_date || "",
 
@@ -1602,6 +1614,43 @@ function populateStaffFormOptions() {
         }
     );
 
+
+    const subDepartment =
+        document.getElementById("staffSubDepartment");
+
+    const subRank =
+        document.getElementById("staffSubRank");
+
+    if (subDepartment) {
+
+        subDepartment.innerHTML = `<option value="N/A">N/A</option>`;
+
+        departmentDatabase.forEach(departmentData => {
+
+            const option = document.createElement("option");
+            option.value = departmentData.name;
+            option.textContent = departmentData.name;
+            subDepartment.appendChild(option);
+
+        });
+
+    }
+
+    if (subRank) {
+
+        subRank.innerHTML = `<option value="N/A">N/A</option>`;
+
+        rankDatabase.forEach(rankData => {
+
+            const option = document.createElement("option");
+            option.value = rankData.name;
+            option.textContent = rankData.name;
+            subRank.appendChild(option);
+
+        });
+
+    }
+
 }
 
 
@@ -1712,6 +1761,30 @@ function openStaffForm(
 
 
         document.getElementById(
+            "staffSubDepartment"
+        ).value =
+            member.subDepartment || "N/A";
+
+
+        document.getElementById(
+            "staffSubRank"
+        ).value =
+            member.subRank || "N/A";
+
+
+        document.getElementById(
+            "staffSubDepartmentStartDate"
+        ).value =
+            member.subDepartmentStartDate || "";
+
+
+        document.getElementById(
+            "staffSubDepartmentEndDate"
+        ).value =
+            member.subDepartmentEndDate || "";
+
+
+        document.getElementById(
             "staffStartDate"
         ).value =
             member.startDate;
@@ -1724,6 +1797,8 @@ function openStaffForm(
 
 
         updateServicePreview();
+
+        updateSubServicePreview();
 
         updateStaffAvatarPreview();
 
@@ -1751,7 +1826,17 @@ function openStaffForm(
             "staffWebsiteRole"
         ).value = "N/A";
 
+        document.getElementById(
+            "staffSubDepartment"
+        ).value = "N/A";
+
+        document.getElementById(
+            "staffSubRank"
+        ).value = "N/A";
+
         updateServicePreview();
+
+        updateSubServicePreview();
 
         updateStaffAvatarPreview();
 
@@ -1831,6 +1916,30 @@ function setupStaffForm() {
                 document.getElementById(
                     "staffDepartment"
                 ).value;
+
+            const subDepartment =
+                document.getElementById(
+                    "staffSubDepartment"
+                )?.value
+                || "N/A";
+
+            const subRank =
+                document.getElementById(
+                    "staffSubRank"
+                )?.value
+                || "N/A";
+
+            const subDepartmentStartDate =
+                document.getElementById(
+                    "staffSubDepartmentStartDate"
+                )?.value
+                || "";
+
+            const subDepartmentEndDate =
+                document.getElementById(
+                    "staffSubDepartmentEndDate"
+                )?.value
+                || "";
 
             const avatarUrl =
                 document.getElementById(
@@ -1932,6 +2041,21 @@ function setupStaffForm() {
             }
 
 
+            if (
+                subDepartmentEndDate &&
+                subDepartmentStartDate &&
+                subDepartmentEndDate < subDepartmentStartDate
+            ) {
+
+                alert(
+                    "The sub department end date cannot be before its start date."
+                );
+
+                return;
+
+            }
+
+
             const saveButton =
                 staffForm.querySelector(
                     "button[type='submit']"
@@ -1982,6 +2106,18 @@ function setupStaffForm() {
 
                                 website_role:
                                     websiteRole,
+
+                                sub_department:
+                                    subDepartment,
+
+                                sub_rank:
+                                    subRank,
+
+                                sub_department_start_date:
+                                    subDepartmentStartDate || null,
+
+                                sub_department_end_date:
+                                    subDepartmentEndDate || null,
 
                                 start_date:
                                     startDate,
@@ -2051,6 +2187,18 @@ function setupStaffForm() {
                                 websiteRole:
                                     data.website_role || "N/A",
 
+                                subDepartment:
+                                    data.sub_department || "N/A",
+
+                                subRank:
+                                    data.sub_rank || "N/A",
+
+                                subDepartmentStartDate:
+                                    data.sub_department_start_date || "",
+
+                                subDepartmentEndDate:
+                                    data.sub_department_end_date || "",
+
                                 startDate:
                                     data.start_date || "",
 
@@ -2095,6 +2243,18 @@ function setupStaffForm() {
 
                                 website_role:
                                     websiteRole,
+
+                                sub_department:
+                                    subDepartment,
+
+                                sub_rank:
+                                    subRank,
+
+                                sub_department_start_date:
+                                    subDepartmentStartDate || null,
+
+                                sub_department_end_date:
+                                    subDepartmentEndDate || null,
 
                                 start_date:
                                     startDate,
@@ -2146,6 +2306,18 @@ function setupStaffForm() {
 
                             websiteRole:
                                 data.website_role || "N/A",
+
+                            subDepartment:
+                                data.sub_department || "N/A",
+
+                            subRank:
+                                data.sub_rank || "N/A",
+
+                            subDepartmentStartDate:
+                                data.sub_department_start_date || "",
+
+                            subDepartmentEndDate:
+                                data.sub_department_end_date || "",
 
                             startDate:
                                 data.start_date || "",
@@ -2328,6 +2500,29 @@ function updateServicePreview() {
         return;
     }
 
+
+    preview.textContent =
+        `${calculateServiceDays(start, end)} Days`;
+
+}
+
+
+/* =====================================================
+   SUB DEPARTMENT SERVICE PREVIEW
+===================================================== */
+
+function updateSubServicePreview() {
+
+    const start =
+        document.getElementById("staffSubDepartmentStartDate")?.value;
+
+    const end =
+        document.getElementById("staffSubDepartmentEndDate")?.value;
+
+    const preview =
+        document.getElementById("subServiceLengthPreview");
+
+    if (!preview) return;
 
     preview.textContent =
         `${calculateServiceDays(start, end)} Days`;
@@ -5553,6 +5748,21 @@ function setupEventListeners() {
     }
 
 
+    const subStartDateInput =
+        document.getElementById("staffSubDepartmentStartDate");
+
+    const subEndDateInput =
+        document.getElementById("staffSubDepartmentEndDate");
+
+    if (subStartDateInput) {
+        subStartDateInput.addEventListener("change", updateSubServicePreview);
+    }
+
+    if (subEndDateInput) {
+        subEndDateInput.addEventListener("change", updateSubServicePreview);
+    }
+
+
     const editorSearch =
         document.getElementById(
             "editorStaffSearch"
@@ -7687,6 +7897,20 @@ function openEmployeeFile(staffId) {
 
                 <p style="color:#858b98; font-size:13px;"><strong style="color:#c7cad2;">Current Department:</strong> ${escapeHTML(member.department)}</p>
 
+                ${
+                    member.subDepartment && member.subDepartment !== "N/A"
+                        ? `
+                            <p style="color:#858b98; font-size:13px; margin-top:8px;"><strong style="color:#c7cad2;">Sub Department:</strong> ${escapeHTML(member.subDepartment)}</p>
+                            ${
+                                member.subRank && member.subRank !== "N/A"
+                                    ? `<p style="color:#858b98; font-size:13px;"><strong style="color:#c7cad2;">Sub Rank:</strong> ${escapeHTML(member.subRank)}</p>`
+                                    : ""
+                            }
+                            <p style="color:#858b98; font-size:13px;"><strong style="color:#c7cad2;">Sub Department Service:</strong> ${calculateServiceDays(member.subDepartmentStartDate, member.subDepartmentEndDate)} Days</p>
+                        `
+                        : ""
+                }
+
             </div>
 
         </div>
@@ -7789,11 +8013,6 @@ function closeEmployeeFile() {
 
 }
 
-
-/* =====================================================
-   GET DEPARTMENT LOGO
-===================================================== */
-
 function getDepartmentLogo(departmentName) {
 
     if (!departmentName) {
@@ -7816,11 +8035,6 @@ function getDepartmentLogo(departmentName) {
     );
 
 }
-
-
-/* =====================================================
-   GET RANK LOGO
-===================================================== */
 
 function getRankLogo(rankName) {
 
