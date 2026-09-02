@@ -8013,6 +8013,11 @@ function closeEmployeeFile() {
 
 }
 
+
+/* =====================================================
+   GET DEPARTMENT LOGO
+===================================================== */
+
 function getDepartmentLogo(departmentName) {
 
     if (!departmentName) {
@@ -8035,6 +8040,11 @@ function getDepartmentLogo(departmentName) {
     );
 
 }
+
+
+/* =====================================================
+   GET RANK LOGO
+===================================================== */
 
 function getRankLogo(rankName) {
 
