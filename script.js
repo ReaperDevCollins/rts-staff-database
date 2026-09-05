@@ -38,7 +38,14 @@ async function sendPasswordReset(email) {
    CHECK EDITOR AUTHORIZATION
 ===================================================== */
 
-async function isAuthorizedEditor(userId) {
+async function isAuthorizedEditor(userId, email) {
+
+    if (
+        email &&
+        email.toLowerCase() === ADMIN_EMAIL.toLowerCase()
+    ) {
+        return true;
+    }
 
     if (!userId) {
         return false;
@@ -51,7 +58,7 @@ async function isAuthorizedEditor(userId) {
             error
         } = await supabaseClient
             .from("editors")
-            .select("id")
+            .select("id, can_access_editor")
             .eq("id", userId)
             .maybeSingle();
 
@@ -65,7 +72,7 @@ async function isAuthorizedEditor(userId) {
             return false;
         }
 
-        return !!data;
+        return !!data && data.can_access_editor === true;
 
     }
 
@@ -73,6 +80,61 @@ async function isAuthorizedEditor(userId) {
 
         console.error(
             "Unexpected editor authorization error:",
+            error
+        );
+
+        return false;
+    }
+
+}
+
+
+/* =====================================================
+   CHECK ADMIN AUTHORIZATION
+===================================================== */
+
+async function isAuthorizedAdmin(userId, email) {
+
+    if (
+        email &&
+        email.toLowerCase() === ADMIN_EMAIL.toLowerCase()
+    ) {
+        return true;
+    }
+
+    if (!userId) {
+        return false;
+    }
+
+    try {
+
+        const {
+            data,
+            error
+        } = await supabaseClient
+            .from("editors")
+            .select("id, can_access_admin")
+            .eq("id", userId)
+            .maybeSingle();
+
+        if (error) {
+
+            console.error(
+                "Admin authorization error:",
+                error
+            );
+
+            return false;
+        }
+
+        return !!data && data.can_access_admin === true;
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Unexpected admin authorization error:",
             error
         );
 
@@ -238,9 +300,6 @@ async function loadStaffDatabase() {
 
                     robloxId:
                         member.roblox_id || "",
-
-                    websiteRole:
-                        member.website_role || "N/A",
 
                     subDepartment:
                         member.sub_department || "N/A",
@@ -1096,7 +1155,7 @@ function setupEditorLogin() {
 
 
                 const authorized =
-                await isAuthorizedEditor(data.user.id);
+                await isAuthorizedEditor(data.user.id, data.user.email);
             
             if (!authorized) {
             
@@ -1203,8 +1262,6 @@ async function showEditorPanel() {
 
     displaySocialPostManagement();
 
-    displayWebsiteRoleManagement();
-
     refreshSpotlightUI();
 
 }
@@ -1287,7 +1344,8 @@ async function checkEditorSession() {
 
         const authorized =
         await isAuthorizedEditor(
-            session.user.id
+            session.user.id,
+            session.user.email
         );
     
     if (!authorized) {
@@ -1734,12 +1792,7 @@ function openStaffForm(
             member.robloxId || "";
 
 
-        populateWebsiteRoleFormOptions();
-
-        document.getElementById(
-            "staffWebsiteRole"
-        ).value =
-            member.websiteRole || "N/A";
+        populateStaffRoleCheckboxes(getStaffRoleIds(staffId));
 
 
         document.getElementById(
@@ -1820,11 +1873,7 @@ function openStaffForm(
         ).textContent =
             "Add Staff Member";
 
-        populateWebsiteRoleFormOptions();
-
-        document.getElementById(
-            "staffWebsiteRole"
-        ).value = "N/A";
+        populateStaffRoleCheckboxes([]);
 
         document.getElementById(
             "staffSubDepartment"
@@ -1954,12 +2003,6 @@ function setupStaffForm() {
                 )?.value
                 ?.trim()
                 || "";
-
-            const websiteRole =
-                document.getElementById(
-                    "staffWebsiteRole"
-                )?.value
-                || "N/A";
 
             const startDate =
                 document.getElementById(
@@ -2104,9 +2147,6 @@ function setupStaffForm() {
                                 roblox_id:
                                     robloxId || null,
 
-                                website_role:
-                                    websiteRole,
-
                                 sub_department:
                                     subDepartment,
 
@@ -2184,9 +2224,6 @@ function setupStaffForm() {
                                 robloxId:
                                     data.roblox_id || "",
 
-                                websiteRole:
-                                    data.website_role || "N/A",
-
                                 subDepartment:
                                     data.sub_department || "N/A",
 
@@ -2210,6 +2247,8 @@ function setupStaffForm() {
                         }
 
                     }
+
+                    await saveStaffRoles(editingStaffId, getCheckedStaffRoleIds());
 
                 }
 
@@ -2240,9 +2279,6 @@ function setupStaffForm() {
 
                                 roblox_id:
                                     robloxId || null,
-
-                                website_role:
-                                    websiteRole,
 
                                 sub_department:
                                     subDepartment,
@@ -2304,9 +2340,6 @@ function setupStaffForm() {
                             robloxId:
                                 data.roblox_id || "",
 
-                            websiteRole:
-                                data.website_role || "N/A",
-
                             subDepartment:
                                 data.sub_department || "N/A",
 
@@ -2326,6 +2359,8 @@ function setupStaffForm() {
                                 data.end_date || ""
 
                         });
+
+                        await saveStaffRoles(data.id, getCheckedStaffRoleIds());
 
                     }
 
@@ -4866,447 +4901,403 @@ async function removeStatus(id) {
 }
 
 /* =====================================================
-   EDITOR MANAGEMENT
+   EDITOR MANAGEMENT (WITH PERMISSIONS)
 ===================================================== */
 
-async function createEditorAccount(event) {
+const CREATE_EDITOR_FUNCTION =
+    `${SUPABASE_URL}/functions/v1/create-editor`;
+
+let editorManagementDatabase = [];
+
+
+async function loadEditorManagement() {
+
+    const container = document.getElementById("editorManagementList");
+
+    if (!container) return;
+
+    container.innerHTML = `
+        <div class="management-empty">
+            Loading editors...
+        </div>
+    `;
+
+    try {
+
+        const { data, error } =
+            await supabaseClient
+                .from("editors")
+                .select("id, email, username, can_access_editor, can_access_admin")
+                .order("email", { ascending: true });
+
+        if (error) {
+            console.error("Editor loading error:", error);
+            container.innerHTML = `
+                <div class="management-empty">
+                    Unable to load editors.
+                </div>
+            `;
+            return;
+        }
+
+        editorManagementDatabase = data || [];
+
+        displayEditorManagement();
+
+    } catch (error) {
+        console.error(error);
+        container.innerHTML = `
+            <div class="management-empty">
+                Unable to load editors.
+            </div>
+        `;
+    }
+
+}
+
+
+function displayEditorManagement() {
+
+    const container = document.getElementById("editorManagementList");
+
+    if (!container) return;
+
+    const search =
+        document.getElementById("editorManagementSearch")?.value
+            ?.trim()
+            .toLowerCase()
+        || "";
+
+    const filtered = editorManagementDatabase.filter(
+        editor => (editor.email || "").toLowerCase().includes(search)
+    );
+
+    container.innerHTML = "";
+
+    if (filtered.length === 0) {
+        container.innerHTML = `
+            <div class="management-empty">
+                No editors found.
+            </div>
+        `;
+        return;
+    }
+
+    filtered.forEach(editor => {
+
+        const isSuperAdmin =
+            editor.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+
+        const item = document.createElement("div");
+        item.className = "management-item";
+
+        if (isSuperAdmin) {
+
+            item.innerHTML = `
+
+                <div>
+
+                    <span class="management-name">
+                        ${escapeHTML(editor.email)}
+                    </span>
+
+                    <div style="font-size:12px; color:#b58a28; margin-top:4px; font-weight:700;">
+                        Super Admin \u2014 full access
+                    </div>
+
+                </div>
+
+            `;
+
+        } else {
+
+            const editorCheckboxId = `editorAccess_${editor.id}`;
+            const adminCheckboxId = `adminAccess_${editor.id}`;
+
+            item.innerHTML = `
+
+                <div>
+
+                    <span class="management-name">
+                        ${escapeHTML(editor.username || editor.email)}
+                    </span>
+
+                    <div style="font-size:12px; color:#858b98; margin-top:2px;">
+                        ${escapeHTML(editor.email)}
+                    </div>
+
+                    <div style="display:flex; gap:16px; margin-top:8px; font-size:12px;">
+
+                        <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+                            <input type="checkbox" id="${editorCheckboxId}" ${editor.can_access_editor ? "checked" : ""}>
+                            Editor Panel Access
+                        </label>
+
+                        <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+                            <input type="checkbox" id="${adminCheckboxId}" ${editor.can_access_admin ? "checked" : ""}>
+                            Admin Panel Access
+                        </label>
+
+                    </div>
+
+                </div>
+
+                <div class="management-actions">
+
+                    <button
+                        class="management-button"
+                        onclick="saveEditorPermissions('${editor.id}', '${editorCheckboxId}', '${adminCheckboxId}')"
+                    >
+                        Save
+                    </button>
+
+                    <button
+                        class="management-button delete"
+                        onclick="removeEditorAccount('${editor.id}', '${escapeHTML(editor.email)}')"
+                    >
+                        Remove
+                    </button>
+
+                </div>
+
+            `;
+
+        }
+
+        container.appendChild(item);
+
+    });
+
+}
+
+
+async function addEditorAccount(event) {
 
     event.preventDefault();
 
-    const email =
-        document.getElementById(
-            "newEditorEmail"
-        )?.value
-        ?.trim();
+    const email = document.getElementById("newEditorEmail")?.value?.trim();
+    const password = document.getElementById("newEditorPassword")?.value;
+    const username = document.getElementById("newEditorName")?.value?.trim();
+    const canAccessEditor = document.getElementById("newEditorCanAccessEditor")?.checked ?? true;
+    const canAccessAdmin = document.getElementById("newEditorCanAccessAdmin")?.checked ?? false;
 
-    const password =
-        document.getElementById(
-            "newEditorPassword"
-        )?.value;
+    const message = document.getElementById("createEditorMessage");
+    const button = document.querySelector("#createEditorForm button[type='submit']");
 
-    const name =
-        document.getElementById(
-            "newEditorName"
-        )?.value
-        ?.trim();
-
-    const message =
-        document.getElementById(
-            "createEditorMessage"
-        );
-
-    const button =
-        document.querySelector(
-            "#createEditorForm button[type='submit']"
-        );
-
-
-    if (message) {
-        message.textContent = "";
-    }
-
+    if (message) message.textContent = "";
 
     if (!email || !password) {
-
-        if (message) {
-            message.textContent =
-                "Please enter an email and password.";
-        }
-
+        if (message) message.textContent = "Please enter an email and password.";
         return;
-
     }
-
 
     if (password.length < 6) {
-
-        if (message) {
-            message.textContent =
-                "Password must be at least 6 characters.";
-        }
-
+        if (message) message.textContent = "Password must be at least 6 characters.";
         return;
-
     }
-
 
     if (button) {
-
         button.disabled = true;
-
-        button.textContent =
-            "Creating...";
-
+        button.textContent = "Creating...";
     }
-
 
     try {
 
-        const {
-            data,
-            error
-        } =
-            await supabaseClient.functions.invoke(
-                "create-editor",
-                {
-                    body: {
-                        email:
-                            email,
+        const { data: { session } } = await supabaseClient.auth.getSession();
 
-                        password:
-                            password,
-
-                        name:
-                            name || null
-                    }
-                }
-            );
-
-
-        if (error) {
-
-            console.error(
-                "Create editor error:",
-                error
-            );
-
-            if (message) {
-                message.textContent =
-                    error.message ||
-                    "Unable to create editor.";
-            }
-
+        if (!session) {
+            if (message) message.textContent = "Your admin session has expired.";
             return;
-
         }
 
+        const response = await fetch(CREATE_EDITOR_FUNCTION, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${session.access_token}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                email: email,
+                password: password,
+                username: username || null,
+                canAccessEditor: canAccessEditor,
+                canAccessAdmin: canAccessAdmin
+            })
+        });
 
-        if (
-            data &&
-            data.error
-        ) {
+        const result = await response.json();
 
-            if (message) {
-                message.textContent =
-                    data.error;
-            }
-
+        if (!response.ok) {
+            if (message) message.textContent = result.error || "Unable to create editor.";
             return;
-
         }
-
 
         if (message) {
-
-            message.textContent =
-                "Editor account created successfully.";
-
+            message.style.color = "green";
+            message.textContent = "Editor account created successfully.";
         }
 
+        document.getElementById("createEditorForm")?.reset();
 
-        document
-            .getElementById(
-                "createEditorForm"
-            )
-            ?.reset();
+        await loadEditorManagement();
 
-
-        await loadEditorAccounts();
-
-    }
-
-    catch (error) {
-
-        console.error(
-            "Unexpected editor creation error:",
-            error
-        );
-
-        if (message) {
-
-            message.textContent =
-                "An unexpected error occurred.";
-
-        }
-
-    }
-
-    finally {
-
+    } catch (error) {
+        console.error("Create editor error:", error);
+        if (message) message.textContent = "Unable to connect to the server.";
+    } finally {
         if (button) {
-
             button.disabled = false;
-
-            button.textContent =
-                "Create Editor";
-
+            button.textContent = "Create Editor";
         }
-
     }
 
 }
 
 
-/* =====================================================
-   LOAD EDITOR ACCOUNTS
-===================================================== */
+async function saveEditorPermissions(userId, editorCheckboxId, adminCheckboxId) {
 
-async function loadEditorAccounts() {
-
-    const container =
-        document.getElementById(
-            "editorManagementList"
-        );
-
-
-    if (!container) {
-        return;
-    }
-
-
-    container.innerHTML = `
-
-        <div class="management-empty">
-
-            Loading editors...
-
-        </div>
-
-    `;
-
+    const canAccessEditor = document.getElementById(editorCheckboxId)?.checked ?? false;
+    const canAccessAdmin = document.getElementById(adminCheckboxId)?.checked ?? false;
 
     try {
 
-        const {
-            data,
-            error
-        } =
-            await supabaseClient
-                .from("editors")
-                .select("*")
-                .order(
-                    "created_at",
-                    {
-                        ascending: true
-                    }
-                );
+        const { data: { session } } = await supabaseClient.auth.getSession();
 
-
-        if (error) {
-
-            console.error(
-                "Editor loading error:",
-                error
-            );
-
-
-            container.innerHTML = `
-
-                <div class="management-empty">
-
-                    Unable to load editors.
-
-                </div>
-
-            `;
-
+        if (!session) {
+            alert("Your admin session has expired.");
             return;
-
         }
 
+        const response = await fetch(CREATE_EDITOR_FUNCTION, {
+            method: "PATCH",
+            headers: {
+                "Authorization": `Bearer ${session.access_token}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                userId: userId,
+                canAccessEditor: canAccessEditor,
+                canAccessAdmin: canAccessAdmin
+            })
+        });
 
-        container.innerHTML = "";
+        const result = await response.json();
 
-
-        if (
-            !data ||
-            data.length === 0
-        ) {
-
-            container.innerHTML = `
-
-                <div class="management-empty">
-
-                    No editors have been created.
-
-                </div>
-
-            `;
-
+        if (!response.ok) {
+            alert(result.error || "Unable to update permissions.");
             return;
-
         }
 
+        const editor = editorManagementDatabase.find(item => String(item.id) === String(userId));
 
-        data.forEach(
-            editor => {
+        if (editor) {
+            editor.can_access_editor = canAccessEditor;
+            editor.can_access_admin = canAccessAdmin;
+        }
 
-                const item =
-                    document.createElement(
-                        "div"
-                    );
+        alert("Permissions updated successfully.");
 
-
-                item.className =
-                    "management-item";
-
-
-                item.innerHTML = `
-
-                    <div>
-
-                        <span class="management-name">
-
-                            ${escapeHTML(
-                                editor.name ||
-                                editor.email ||
-                                "Unnamed Editor"
-                            )}
-
-                        </span>
-
-
-                        <small>
-
-                            ${escapeHTML(
-                                editor.email ||
-                                ""
-                            )}
-
-                        </small>
-
-                    </div>
-
-
-                    <div class="management-actions">
-
-                        <button
-                            class="management-button delete"
-                            onclick="deleteEditor('${editor.id}')"
-                        >
-                            Remove
-                        </button>
-
-                    </div>
-
-                `;
-
-
-                container.appendChild(
-                    item
-                );
-
-            }
-        );
-
-    }
-
-    catch (error) {
-
-        console.error(
-            "Unexpected editor loading error:",
-            error
-        );
-
+    } catch (error) {
+        console.error(error);
+        alert("Unable to connect to the server.");
     }
 
 }
 
 
-/* =====================================================
-   DELETE EDITOR
-===================================================== */
+async function removeEditorAccount(userId, email) {
 
-async function deleteEditor(userId) {
+    const confirmed = confirm(`Are you sure you want to remove ${email} from the system?`);
 
-    if (!userId) {
-        return;
-    }
-
-
-    const confirmed =
-        confirm(
-            "Are you sure you want to remove this editor? They will no longer be able to access the Editor Panel."
-        );
-
-
-    if (!confirmed) {
-        return;
-    }
-
+    if (!confirmed) return;
 
     try {
 
-        const {
-            data,
-            error
-        } =
-            await supabaseClient.functions.invoke(
-                "create-editor",
-                {
-                    method: "DELETE",
+        const { data: { session } } = await supabaseClient.auth.getSession();
 
-                    body: {
-                        userId:
-                            userId
-                    }
-                }
-            );
-
-
-        if (error) {
-
-            console.error(
-                "Delete editor error:",
-                error
-            );
-
-            alert(
-                error.message ||
-                "Unable to remove editor."
-            );
-
+        if (!session) {
+            alert("Your admin session has expired.");
             return;
-
         }
 
+        const response = await fetch(CREATE_EDITOR_FUNCTION, {
+            method: "DELETE",
+            headers: {
+                "Authorization": `Bearer ${session.access_token}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ userId: userId })
+        });
 
-        if (
-            data &&
-            data.error
-        ) {
+        const result = await response.json();
 
-            alert(
-                data.error
-            );
-
+        if (!response.ok) {
+            alert(result.error || "Unable to remove editor.");
             return;
-
         }
 
+        editorManagementDatabase =
+            editorManagementDatabase.filter(item => String(item.id) !== String(userId));
 
-        alert(
-            "Editor removed successfully."
-        );
+        displayEditorManagement();
 
+        alert(`${email} has been removed.`);
 
-        await loadEditorAccounts();
-
-    }
-
-    catch (error) {
-
-        console.error(
-            error
-        );
-
-        alert(
-            "An unexpected error occurred while removing the editor."
-        );
-
+    } catch (error) {
+        console.error(error);
+        alert("Unable to connect to the server.");
     }
 
 }
+
+
+function setupEditorManagementForm() {
+
+    const form = document.getElementById("createEditorForm");
+
+    if (!form) return;
+
+    form.addEventListener("submit", addEditorAccount);
+
+    const search = document.getElementById("editorManagementSearch");
+
+    if (search) {
+        search.addEventListener("input", displayEditorManagement);
+    }
+
+}
+
+
+function openEditorCreationForm() {
+
+    const form = document.getElementById("editorCreationForm");
+
+    if (!form) return;
+
+    form.classList.remove("hidden");
+
+    document.getElementById("newEditorEmail")?.focus();
+
+}
+
+
+function closeEditorCreationForm() {
+
+    const form = document.getElementById("editorCreationForm");
+
+    if (!form) return;
+
+    form.classList.add("hidden");
+
+    const editorForm = document.getElementById("createEditorForm");
+    if (editorForm) editorForm.reset();
+
+    const message = document.getElementById("createEditorMessage");
+    if (message) message.textContent = "";
+
+}
+
+
 /* =====================================================
    ADMIN SESSION
 ===================================================== */
@@ -5332,7 +5323,10 @@ function showAdminPanel() {
     login.classList.add("hidden");
 
     panel.classList.remove("hidden");
-    loadEditorAccounts();
+
+    loadEditorManagement();
+
+    displayWebsiteRoleManagement();
 }
 
 
@@ -5360,6 +5354,13 @@ function setupAdminLogin() {
             event.preventDefault();
 
 
+            const email =
+                document.getElementById(
+                    "adminEmail"
+                )?.value
+                ?.trim();
+
+
             const password =
                 document.getElementById(
                     "adminPassword"
@@ -5377,11 +5378,11 @@ function setupAdminLogin() {
             }
 
 
-            if (!password) {
+            if (!email || !password) {
 
                 if (error) {
                     error.textContent =
-                        "Please enter your administrator password.";
+                        "Please enter your email and password.";
                 }
 
                 return;
@@ -5407,16 +5408,6 @@ function setupAdminLogin() {
 
             try {
 
-                /*
-                 * The administrator email is
-                 * the email configured in the
-                 * create-editor Edge Function.
-                 */
-
-                const ADMIN_EMAIL =
-                    "devmccollins@gmail.com";
-
-
                 const {
                     data,
                     error: loginError
@@ -5425,7 +5416,7 @@ function setupAdminLogin() {
                         .signInWithPassword({
 
                             email:
-                                ADMIN_EMAIL,
+                                email,
 
                             password:
                                 password
@@ -5438,7 +5429,7 @@ function setupAdminLogin() {
                     if (error) {
                         error.textContent =
                             loginError.message ||
-                            "Incorrect administrator password.";
+                            "Incorrect email or password.";
                     }
 
                     return;
@@ -5451,6 +5442,26 @@ function setupAdminLogin() {
                     if (error) {
                         error.textContent =
                             "Login failed. No authentication session was created.";
+                    }
+
+                    return;
+
+                }
+
+
+                const authorized =
+                    await isAuthorizedAdmin(
+                        data.user.id,
+                        data.user.email
+                    );
+
+                if (!authorized) {
+
+                    await supabaseClient.auth.signOut();
+
+                    if (error) {
+                        error.textContent =
+                            "You are not authorized to access the Admin Panel.";
                     }
 
                     return;
@@ -5585,18 +5596,19 @@ async function checkAdminSession() {
 
 
         /*
-         * Make sure this session belongs
-         * to the administrator.
+         * Make sure this session is
+         * actually authorized for
+         * admin panel access.
          */
 
-        const ADMIN_EMAIL =
-            "devmccollins@gmail.com";
+        const authorized =
+            await isAuthorizedAdmin(
+                session.user.id,
+                session.user.email
+            );
 
 
-        if (
-            session.user.email?.toLowerCase() !==
-            ADMIN_EMAIL.toLowerCase()
-        ) {
+        if (!authorized) {
 
             await supabaseClient.auth.signOut();
 
@@ -5659,20 +5671,6 @@ function showAdminLogin() {
 ===================================================== */
 
 function setupEventListeners() {
-    const createEditorForm =
-        document.getElementById(
-            "createEditorForm"
-        );
-
-
-    if (createEditorForm) {
-
-        createEditorForm.addEventListener(
-            "submit",
-            createEditorAccount
-        );
-
-    }
     const logoInput =
         document.getElementById(
             "departmentLogo"
@@ -5774,1159 +5772,6 @@ function setupEventListeners() {
         editorSearch.addEventListener(
             "input",
             displayEditorStaff
-        );
-
-    }
-
-}
-/* =====================================================
-   EDITOR MANAGEMENT
-===================================================== */
-
-async function loadEditorManagement() {
-
-    const container =
-        document.getElementById(
-            "editorManagementList"
-        );
-
-    if (!container) {
-        return;
-    }
-
-    container.innerHTML = `
-        <div class="management-empty">
-            Loading editors...
-        </div>
-    `;
-
-    try {
-
-        const {
-            data: {
-                user
-            }
-        } =
-            await supabaseClient.auth.getUser();
-
-        if (!user) {
-            container.innerHTML = `
-                <div class="management-empty">
-                    You must be signed in as an administrator.
-                </div>
-            `;
-            return;
-        }
-
-        const {
-            data,
-            error
-        } =
-            await supabaseClient
-                .from("editors")
-                .select("id, email, created_at")
-                .order(
-                    "created_at",
-                    {
-                        ascending: true
-                    }
-                );
-
-        if (error) {
-            console.error(
-                "Unable to load editors:",
-                error
-            );
-
-            container.innerHTML = `
-                <div class="management-empty">
-                    Unable to load editors.
-                </div>
-            `;
-
-            return;
-        }
-
-        container.innerHTML = "";
-
-        if (!data || data.length === 0) {
-
-            container.innerHTML = `
-                <div class="management-empty">
-                    No editors have been created yet.
-                </div>
-            `;
-
-            return;
-        }
-
-        data.forEach(editor => {
-
-            const item =
-                document.createElement("div");
-
-            item.className =
-                "management-item";
-
-            const date =
-                editor.created_at
-                    ? new Date(
-                        editor.created_at
-                    ).toLocaleDateString(
-                        "en-US",
-                        {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric"
-                        }
-                    )
-                    : "Unknown";
-
-            item.innerHTML = `
-
-                <div>
-
-                    <span class="management-name">
-                        ${escapeHTML(editor.email)}
-                    </span>
-
-                    <small>
-                        Created ${escapeHTML(date)}
-                    </small>
-
-                </div>
-
-                <div class="management-actions">
-
-                    <button
-                        class="management-button delete"
-                        onclick="removeEditor('${editor.id}', '${escapeHTML(editor.email)}')"
-                    >
-                        Remove
-                    </button>
-
-                </div>
-
-            `;
-
-            container.appendChild(item);
-
-        });
-
-    }
-
-    catch (error) {
-
-        console.error(
-            "Unexpected editor loading error:",
-            error
-        );
-
-        container.innerHTML = `
-            <div class="management-empty">
-                An unexpected error occurred.
-            </div>
-        `;
-
-    }
-
-}
-
-
-/* =====================================================
-   OPEN CREATE EDITOR MODAL
-===================================================== */
-
-function openCreateEditorModal() {
-
-    const modal =
-        document.getElementById(
-            "createEditorModal"
-        );
-
-    const form =
-        document.getElementById(
-            "createEditorForm"
-        );
-
-    const error =
-        document.getElementById(
-            "createEditorError"
-        );
-
-    if (!modal) {
-        return;
-    }
-
-    if (form) {
-        form.reset();
-    }
-
-    if (error) {
-        error.textContent = "";
-    }
-
-    modal.classList.remove("hidden");
-
-}
-
-
-/* =====================================================
-   CLOSE CREATE EDITOR MODAL
-===================================================== */
-
-function closeCreateEditorModal() {
-
-    const modal =
-        document.getElementById(
-            "createEditorModal"
-        );
-
-    if (!modal) {
-        return;
-    }
-
-    modal.classList.add("hidden");
-
-}
-
-
-/* =====================================================
-   CREATE EDITOR
-===================================================== */
-
-async function createEditorAccount(
-    email,
-    password
-) {
-
-    const {
-        data: {
-            session
-        }
-    } =
-        await supabaseClient.auth.getSession();
-
-    if (!session) {
-
-        throw new Error(
-            "You are not currently signed in."
-        );
-
-    }
-
-
-    const response =
-        await fetch(
-            `${SUPABASE_URL}/functions/v1/create-editor`,
-            {
-
-                method: "POST",
-
-                headers: {
-
-                    "Content-Type":
-                        "application/json",
-
-                    "Authorization":
-                        `Bearer ${session.access_token}`
-
-                },
-
-                body: JSON.stringify({
-
-                    email:
-                        email,
-
-                    password:
-                        password
-
-                })
-
-            }
-        );
-
-
-    let result = {};
-
-    try {
-        result =
-            await response.json();
-    }
-
-    catch {
-        result = {};
-    }
-
-
-    if (!response.ok) {
-
-        throw new Error(
-            result.error ||
-            result.message ||
-            "Unable to create editor."
-        );
-
-    }
-
-
-    return result;
-
-}
-
-
-/* =====================================================
-   CREATE EDITOR FORM
-===================================================== */
-
-function setupCreateEditorForm() {
-
-    const form =
-        document.getElementById(
-            "createEditorForm"
-        );
-
-    if (!form) {
-        return;
-    }
-
-
-    form.addEventListener(
-        "submit",
-        async function(event) {
-
-            event.preventDefault();
-
-
-            const email =
-                document.getElementById(
-                    "newEditorEmail"
-                )?.value
-                ?.trim();
-
-
-            const password =
-                document.getElementById(
-                    "newEditorPassword"
-                )?.value;
-
-
-            const error =
-                document.getElementById(
-                    "createEditorError"
-                );
-
-
-            const button =
-                form.querySelector(
-                    "button[type='submit']"
-                );
-
-
-            if (error) {
-                error.textContent = "";
-            }
-
-
-            if (!email || !password) {
-
-                if (error) {
-                    error.textContent =
-                        "Please enter an email and password.";
-                }
-
-                return;
-
-            }
-
-
-            if (password.length < 6) {
-
-                if (error) {
-                    error.textContent =
-                        "Password must be at least 6 characters.";
-                }
-
-                return;
-
-            }
-
-
-            if (button) {
-
-                button.disabled = true;
-
-                button.textContent =
-                    "Creating...";
-
-            }
-
-
-            try {
-
-                await createEditorAccount(
-                    email,
-                    password
-                );
-
-
-                closeCreateEditorModal();
-
-                await loadEditorManagement();
-
-
-                alert(
-                    `Editor account created successfully for ${email}.`
-                );
-
-            }
-
-            catch (error) {
-
-                console.error(
-                    "Create editor error:",
-                    error
-                );
-
-                if (error) {
-
-                    document.getElementById(
-                        "createEditorError"
-                    ).textContent =
-                        error.message ||
-                        "Unable to create editor.";
-
-                }
-
-            }
-
-            finally {
-
-                if (button) {
-
-                    button.disabled = false;
-
-                    button.textContent =
-                        "Create Editor";
-
-                }
-
-            }
-
-        }
-    );
-
-}
-
-
-/* =====================================================
-   REMOVE EDITOR
-===================================================== */
-
-async function removeEditor(
-    editorId,
-    email
-) {
-
-    const confirmed =
-        confirm(
-            `Are you sure you want to remove ${email} from the Editor Panel?`
-        );
-
-
-    if (!confirmed) {
-        return;
-    }
-
-
-    try {
-
-        const {
-            data: {
-                session
-            }
-        } =
-            await supabaseClient.auth.getSession();
-
-
-        if (!session) {
-
-            alert(
-                "You must be signed in."
-            );
-
-            return;
-
-        }
-
-
-        const response =
-            await fetch(
-                `${SUPABASE_URL}/functions/v1/create-editor`,
-                {
-
-                    method: "DELETE",
-
-                    headers: {
-
-                        "Content-Type":
-                            "application/json",
-
-                        "Authorization":
-                            `Bearer ${session.access_token}`
-
-                    },
-
-                    body: JSON.stringify({
-
-                        userId:
-                            editorId
-
-                    })
-
-                }
-            );
-
-
-        const result =
-            await response.json();
-
-
-        if (!response.ok) {
-
-            throw new Error(
-                result.error ||
-                "Unable to remove editor."
-            );
-
-        }
-
-
-        await loadEditorManagement();
-
-
-        alert(
-            `${email} has been removed from the Editor Panel.`
-        );
-
-    }
-
-    catch (error) {
-
-        console.error(
-            "Remove editor error:",
-            error
-        );
-
-        alert(
-            error.message ||
-            "Unable to remove editor."
-        );
-
-    }
-
-}
-
-
-/* =====================================================
-   OPEN EDITOR MANAGEMENT
-===================================================== */
-
-function openEditorManagement() {
-
-    const element =
-        document.getElementById(
-            "editorManagementList"
-        );
-
-    if (!element) {
-
-        alert(
-            "Editor management could not be found."
-        );
-
-        return;
-
-    }
-
-
-    element.scrollIntoView({
-        behavior: "smooth",
-        block: "center"
-    });
-
-
-    loadEditorManagement();
-
-}
-/* =====================================================
-   EDITOR MANAGEMENT
-===================================================== */
-
-const CREATE_EDITOR_FUNCTION =
-    `${SUPABASE_URL}/functions/v1/create-editor`;
-
-
-/* =====================================================
-   SHOW / HIDE CREATION FORM
-===================================================== */
-
-function openEditorCreationForm() {
-
-    const form =
-        document.getElementById(
-            "editorCreationForm"
-        );
-
-    if (!form) {
-        return;
-    }
-
-    form.classList.remove("hidden");
-
-    document.getElementById(
-        "newEditorEmail"
-    )?.focus();
-
-}
-
-
-function closeEditorCreationForm() {
-
-    const form =
-        document.getElementById(
-            "editorCreationForm"
-        );
-
-    if (!form) {
-        return;
-    }
-
-    form.classList.add("hidden");
-
-    const editorForm =
-        document.getElementById(
-            "createEditorForm"
-        );
-
-    if (editorForm) {
-        editorForm.reset();
-    }
-
-    const message =
-        document.getElementById(
-            "createEditorMessage"
-        );
-
-    if (message) {
-        message.textContent = "";
-    }
-
-}
-
-
-/* =====================================================
-   LOAD EDITORS
-===================================================== */
-
-async function loadEditorManagement() {
-
-    const container =
-        document.getElementById(
-            "editorManagementList"
-        );
-
-    if (!container) {
-        return;
-    }
-
-    container.innerHTML = `
-        <div class="management-empty">
-            Loading editors...
-        </div>
-    `;
-
-    try {
-
-        const {
-            data,
-            error
-        } =
-            await supabaseClient
-                .from("editors")
-                .select("id, email")
-                .order(
-                    "email",
-                    {
-                        ascending: true
-                    }
-                );
-
-        if (error) {
-
-            console.error(
-                "Editor loading error:",
-                error
-            );
-
-            container.innerHTML = `
-                <div class="management-empty">
-                    Unable to load editors.
-                </div>
-            `;
-
-            return;
-        }
-
-        displayEditorManagement(
-            data || []
-        );
-
-    }
-
-    catch (error) {
-
-        console.error(error);
-
-        container.innerHTML = `
-            <div class="management-empty">
-                Unable to load editors.
-            </div>
-        `;
-
-    }
-
-}
-
-
-/* =====================================================
-   DISPLAY EDITORS
-===================================================== */
-
-let editorManagementDatabase = [];
-
-
-function displayEditorManagement(
-    editors
-) {
-
-    const container =
-        document.getElementById(
-            "editorManagementList"
-        );
-
-    if (!container) {
-        return;
-    }
-
-    editorManagementDatabase =
-        editors || [];
-
-    const search =
-        document.getElementById(
-            "editorManagementSearch"
-        )?.value
-        ?.trim()
-        .toLowerCase()
-        || "";
-
-
-    const filtered =
-        editorManagementDatabase.filter(
-            editor =>
-                (editor.email || "")
-                    .toLowerCase()
-                    .includes(search)
-        );
-
-
-    container.innerHTML = "";
-
-
-    if (filtered.length === 0) {
-
-        container.innerHTML = `
-            <div class="management-empty">
-                No editors found.
-            </div>
-        `;
-
-        return;
-
-    }
-
-
-    filtered.forEach(
-        editor => {
-
-            const item =
-                document.createElement(
-                    "div"
-                );
-
-            item.className =
-                "management-item";
-
-
-            item.innerHTML = `
-
-                <div>
-
-                    <span class="management-name">
-                        ${escapeHTML(
-                            editor.email
-                        )}
-                    </span>
-
-                    <div
-                        style="
-                            font-size:13px;
-                            opacity:.6;
-                            margin-top:4px;
-                        "
-                    >
-                        Editor Account
-                    </div>
-
-                </div>
-
-
-                <div class="management-actions">
-
-                    <button
-                        class="management-button delete"
-                        onclick="removeEditor('${editor.id}')"
-                    >
-                        Remove
-                    </button>
-
-                </div>
-
-            `;
-
-
-            container.appendChild(item);
-
-        }
-    );
-
-}
-
-
-/* =====================================================
-   CREATE EDITOR
-===================================================== */
-
-function setupEditorManagement() {
-
-    const form =
-        document.getElementById(
-            "createEditorForm"
-        );
-
-    if (!form) {
-        return;
-    }
-
-
-    form.addEventListener(
-        "submit",
-        async function(event) {
-
-            event.preventDefault();
-
-
-            const email =
-                document.getElementById(
-                    "newEditorEmail"
-                )?.value
-                ?.trim();
-
-
-            const password =
-                document.getElementById(
-                    "newEditorPassword"
-                )?.value;
-
-
-            const message =
-                document.getElementById(
-                    "createEditorMessage"
-                );
-
-
-            const button =
-                form.querySelector(
-                    "button[type='submit']"
-                );
-
-
-            if (message) {
-                message.textContent = "";
-            }
-
-
-            if (!email || !password) {
-                return;
-            }
-
-
-            if (button) {
-
-                button.disabled = true;
-
-                button.textContent =
-                    "Creating...";
-
-            }
-
-
-            try {
-
-                const {
-                    data: {
-                        session
-                    }
-                } =
-                    await supabaseClient.auth
-                        .getSession();
-
-
-                if (!session) {
-
-                    if (message) {
-                        message.textContent =
-                            "Your admin session has expired.";
-                    }
-
-                    return;
-
-                }
-
-
-                const response =
-                    await fetch(
-                        CREATE_EDITOR_FUNCTION,
-                        {
-                            method: "POST",
-
-                            headers: {
-
-                                "Authorization":
-                                    `Bearer ${session.access_token}`,
-
-                                "Content-Type":
-                                    "application/json"
-
-                            },
-
-                            body:
-                                JSON.stringify({
-                                    email:
-                                        email,
-
-                                    password:
-                                        password
-                                })
-
-                        }
-                    );
-
-
-                const result =
-                    await response.json();
-
-
-                if (!response.ok) {
-
-                    if (message) {
-                        message.textContent =
-                            result.error ||
-                            "Unable to create editor.";
-                    }
-
-                    return;
-
-                }
-
-
-                if (message) {
-
-                    message.textContent =
-                        "Editor created successfully.";
-
-                }
-
-
-                closeEditorCreationForm();
-
-                await loadEditorManagement();
-
-            }
-
-            catch (error) {
-
-                console.error(error);
-
-                if (message) {
-                    message.textContent =
-                        "Unable to connect to the server.";
-                }
-
-            }
-
-            finally {
-
-                if (button) {
-
-                    button.disabled = false;
-
-                    button.textContent =
-                        "Create Editor";
-
-                }
-
-            }
-
-        }
-    );
-
-
-    const search =
-        document.getElementById(
-            "editorManagementSearch"
-        );
-
-
-    if (search) {
-
-        search.addEventListener(
-            "input",
-            function() {
-
-                displayEditorManagement(
-                    editorManagementDatabase
-                );
-
-            }
-        );
-
-    }
-
-}
-
-
-/* =====================================================
-   REMOVE EDITOR
-===================================================== */
-
-async function removeEditor(
-    userId
-) {
-
-    if (!userId) {
-        return;
-    }
-
-
-    const editor =
-        editorManagementDatabase.find(
-            item =>
-                String(item.id) ===
-                String(userId)
-        );
-
-
-    if (!editor) {
-        return;
-    }
-
-
-    const confirmed =
-        confirm(
-            `Are you sure you want to remove ${editor.email} as an editor?`
-        );
-
-
-    if (!confirmed) {
-        return;
-    }
-
-
-    try {
-
-        const {
-            data: {
-                session
-            }
-        } =
-            await supabaseClient.auth
-                .getSession();
-
-
-        if (!session) {
-
-            alert(
-                "Your admin session has expired."
-            );
-
-            return;
-
-        }
-
-
-        const response =
-            await fetch(
-                CREATE_EDITOR_FUNCTION,
-                {
-                    method: "DELETE",
-
-                    headers: {
-
-                        "Authorization":
-                            `Bearer ${session.access_token}`,
-
-                        "Content-Type":
-                            "application/json"
-
-                    },
-
-                    body:
-                        JSON.stringify({
-                            userId:
-                                userId
-                        })
-
-                }
-            );
-
-
-        const result =
-            await response.json();
-
-
-        if (!response.ok) {
-
-            alert(
-                result.error ||
-                "Unable to remove editor."
-            );
-
-            return;
-
-        }
-
-
-        await loadEditorManagement();
-
-    }
-
-    catch (error) {
-
-        console.error(error);
-
-        alert(
-            "Unable to connect to the server."
         );
 
     }
@@ -7047,6 +5892,8 @@ if (editorForgotPassword) {
         await loadWebsiteRoleDatabase();
 
         await loadStaffDatabase();
+
+        await loadStaffWebsiteRolesDatabase();
 
         await loadSpotlightDatabase();
 
@@ -7835,38 +6682,42 @@ function openEmployeeFile(staffId) {
         entry => String(entry.staffId) === String(member.id)
     );
 
-    const roleConfig = getWebsiteRoleConfig(member.websiteRole);
+    const staffRoles = getStaffRoleConfigs(member.id);
 
     content.innerHTML = `
 
         ${
-            roleConfig
+            staffRoles.length > 0
                 ? `
-                    <div style="display:flex; justify-content:center; margin-bottom:10px;">
+                    <div style="display:flex; justify-content:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
 
-                        <div style="
-                            display:inline-flex;
-                            align-items:center;
-                            gap:6px;
-                            padding:5px 12px;
-                            border-radius:20px;
-                            background:${escapeHTML(roleConfig.color)}33;
-                            color:${escapeHTML(roleConfig.color)};
-                            font-size:11px;
-                            font-weight:800;
-                            text-transform:uppercase;
-                            letter-spacing:0.5px;
-                        ">
+                        ${staffRoles.map(role => `
 
-                            ${
-                                getSafeLogoUrl(roleConfig.iconUrl)
-                                    ? `<img src="${escapeHTML(getSafeLogoUrl(roleConfig.iconUrl))}" alt="" style="width:14px; height:14px; object-fit:contain;">`
-                                    : ""
-                            }
+                            <div style="
+                                display:inline-flex;
+                                align-items:center;
+                                gap:6px;
+                                padding:5px 12px;
+                                border-radius:20px;
+                                background:${escapeHTML(role.color)}33;
+                                color:${escapeHTML(role.color)};
+                                font-size:11px;
+                                font-weight:800;
+                                text-transform:uppercase;
+                                letter-spacing:0.5px;
+                            ">
 
-                            ${escapeHTML(roleConfig.label)}
+                                ${
+                                    getSafeLogoUrl(role.iconUrl)
+                                        ? `<img src="${escapeHTML(getSafeLogoUrl(role.iconUrl))}" alt="" style="width:14px; height:14px; object-fit:contain;">`
+                                        : ""
+                                }
 
-                        </div>
+                                ${escapeHTML(role.label)}
+
+                            </div>
+
+                        `).join("")}
 
                     </div>
                 `
@@ -8071,7 +6922,7 @@ function getRankLogo(rankName) {
 
 
 /* =====================================================
-   WEBSITE ROLES
+   WEBSITE ROLES (MULTI-SELECT)
 ===================================================== */
 
 let websiteRoleDatabase = [];
@@ -8083,7 +6934,8 @@ async function loadWebsiteRoleDatabase() {
         const { data, error } =
             await supabaseClient
                 .from("website_roles")
-                .select("*");
+                .select("*")
+                .order("created_at", { ascending: true });
 
         if (error) {
             console.error("Website role loading error:", error);
@@ -8109,31 +6961,158 @@ async function loadWebsiteRoleDatabase() {
 }
 
 
-function getWebsiteRoleConfig(roleId) {
+let staffWebsiteRolesDatabase = [];
 
-    if (!roleId || roleId === "N/A") return null;
+async function loadStaffWebsiteRolesDatabase() {
 
-    return websiteRoleDatabase.find(role => role.id === roleId) || null;
+    try {
+
+        const { data, error } =
+            await supabaseClient
+                .from("staff_website_roles")
+                .select("id, staff_id, role_id");
+
+        if (error) {
+            console.error("Staff website role loading error:", error);
+            staffWebsiteRolesDatabase = [];
+            return [];
+        }
+
+        staffWebsiteRolesDatabase = (data || []).map(row => ({
+            id: row.id,
+            staffId: row.staff_id,
+            roleId: row.role_id
+        }));
+
+        return staffWebsiteRolesDatabase;
+
+    } catch (error) {
+        console.error("Unexpected staff website role error:", error);
+        staffWebsiteRolesDatabase = [];
+        return [];
+    }
 
 }
 
 
-function populateWebsiteRoleFormOptions() {
+function getStaffRoleIds(staffId) {
 
-    const select = document.getElementById("staffWebsiteRole");
+    return staffWebsiteRolesDatabase
+        .filter(row => String(row.staffId) === String(staffId))
+        .map(row => String(row.roleId));
 
-    if (!select) return;
+}
 
-    select.innerHTML = `<option value="N/A">N/A</option>`;
+
+function getStaffRoleConfigs(staffId) {
+
+    const roleIds = getStaffRoleIds(staffId);
+
+    return websiteRoleDatabase.filter(
+        role => roleIds.includes(String(role.id))
+    );
+
+}
+
+
+function populateStaffRoleCheckboxes(selectedRoleIds = []) {
+
+    const container = document.getElementById("staffWebsiteRolesCheckboxes");
+
+    if (!container) return;
+
+    container.innerHTML = "";
+
+    if (websiteRoleDatabase.length === 0) {
+
+        container.innerHTML = `
+            <div style="color:#686e7a; font-size:12px;">
+                No website roles have been created yet.
+            </div>
+        `;
+
+        return;
+    }
 
     websiteRoleDatabase.forEach(role => {
 
-        const option = document.createElement("option");
-        option.value = role.id;
-        option.textContent = role.label;
-        select.appendChild(option);
+        const checked =
+            selectedRoleIds.includes(String(role.id)) ? "checked" : "";
+
+        const label = document.createElement("label");
+        label.style.cssText =
+            "display:flex; align-items:center; gap:8px; margin-bottom:8px; cursor:pointer; font-size:13px;";
+
+        label.innerHTML = `
+            <input type="checkbox" value="${escapeHTML(String(role.id))}" ${checked}>
+            ${escapeHTML(role.label)}
+        `;
+
+        container.appendChild(label);
 
     });
+
+}
+
+
+function getCheckedStaffRoleIds() {
+
+    const container = document.getElementById("staffWebsiteRolesCheckboxes");
+
+    if (!container) return [];
+
+    return Array.from(
+        container.querySelectorAll("input[type='checkbox']:checked")
+    ).map(checkbox => checkbox.value);
+
+}
+
+
+async function saveStaffRoles(staffId, selectedRoleIds) {
+
+    const currentRoleIds = getStaffRoleIds(staffId);
+
+    const toAdd = selectedRoleIds.filter(id => !currentRoleIds.includes(id));
+    const toRemove = staffWebsiteRolesDatabase.filter(
+        row => String(row.staffId) === String(staffId) && !selectedRoleIds.includes(String(row.roleId))
+    );
+
+    try {
+
+        if (toAdd.length > 0) {
+
+            const { error: insertError } =
+                await supabaseClient
+                    .from("staff_website_roles")
+                    .insert(
+                        toAdd.map(roleId => ({ staff_id: staffId, role_id: roleId }))
+                    );
+
+            if (insertError) {
+                console.error("Unable to add staff roles:", insertError);
+            }
+
+        }
+
+        for (const row of toRemove) {
+
+            const { error: deleteError } =
+                await supabaseClient
+                    .from("staff_website_roles")
+                    .delete()
+                    .eq("id", row.id);
+
+            if (deleteError) {
+                console.error("Unable to remove staff role:", deleteError);
+            }
+
+        }
+
+        await loadStaffWebsiteRolesDatabase();
+
+    } catch (error) {
+        console.error("Unexpected error saving staff roles:", error);
+    }
 
 }
 
@@ -8145,6 +7124,17 @@ function displayWebsiteRoleManagement() {
     if (!container) return;
 
     container.innerHTML = "";
+
+    if (websiteRoleDatabase.length === 0) {
+
+        container.innerHTML = `
+            <div class="management-empty">
+                No website roles have been created yet.
+            </div>
+        `;
+
+        return;
+    }
 
     websiteRoleDatabase.forEach(role => {
 
@@ -8178,8 +7168,12 @@ function displayWebsiteRoleManagement() {
 
             <div class="management-actions">
 
-                <button class="management-button" onclick="updateWebsiteRoleIcon('${role.id}')">
-                    Set Icon
+                <button class="management-button" onclick="editWebsiteRoleDetails('${role.id}')">
+                    Edit
+                </button>
+
+                <button class="management-button delete" onclick="deleteWebsiteRole('${role.id}')">
+                    Delete
                 </button>
 
             </div>
@@ -8189,6 +7183,115 @@ function displayWebsiteRoleManagement() {
         container.appendChild(item);
 
     });
+
+}
+
+
+async function addWebsiteRole() {
+
+    const label = prompt("Enter the name of the new website role:");
+    if (!label) return;
+
+    const cleanLabel = label.trim();
+    if (!cleanLabel) return;
+
+    const exists = websiteRoleDatabase.some(
+        role => role.label.toLowerCase() === cleanLabel.toLowerCase()
+    );
+
+    if (exists) {
+        alert("That role already exists.");
+        return;
+    }
+
+    const iconInput = prompt("Enter an icon image URL for this role (optional, leave blank for none):");
+    const cleanIcon = iconInput ? getSafeLogoUrl(iconInput.trim()) : "";
+
+    try {
+
+        const { data, error } =
+            await supabaseClient
+                .from("website_roles")
+                .insert({ label: cleanLabel, icon_url: cleanIcon || null, color: "#5865f2" })
+                .select()
+                .single();
+
+        if (error) {
+            alert("Unable to add role:\n\n" + error.message);
+            return;
+        }
+
+        websiteRoleDatabase.push({
+            id: data.id,
+            label: data.label,
+            iconUrl: data.icon_url || "",
+            color: data.color
+        });
+
+        displayWebsiteRoleManagement();
+
+    } catch (error) {
+        console.error(error);
+        alert("An unexpected error occurred while adding the role.");
+    }
+
+}
+
+
+async function editWebsiteRoleDetails(id) {
+
+    const role = websiteRoleDatabase.find(item => String(item.id) === String(id));
+    if (!role) return;
+
+    const newLabel = prompt("Enter the new role name:", role.label);
+    if (!newLabel) return;
+
+    const cleanLabel = newLabel.trim();
+    if (!cleanLabel) return;
+
+    const iconInput = prompt(
+        "Enter an icon image URL for this role (leave blank to remove, cancel to keep unchanged):",
+        role.iconUrl || ""
+    );
+
+    let iconToSave = role.iconUrl || "";
+
+    if (iconInput !== null) {
+
+        const cleanIcon = iconInput.trim() ? getSafeLogoUrl(iconInput.trim()) : "";
+
+        if (iconInput.trim() && !cleanIcon) {
+            alert("That doesn't look like a valid image URL. Keeping the previous icon.");
+        } else {
+            iconToSave = cleanIcon;
+        }
+
+    }
+
+    try {
+
+        const { data, error } =
+            await supabaseClient
+                .from("website_roles")
+                .update({ label: cleanLabel, icon_url: iconToSave || null })
+                .eq("id", id)
+                .select()
+                .single();
+
+        if (error) {
+            alert("Unable to update role:\n\n" + error.message);
+            return;
+        }
+
+        role.label = data.label;
+        role.iconUrl = data.icon_url || "";
+
+        displayWebsiteRoleManagement();
+
+    } catch (error) {
+        console.error(error);
+        alert("An unexpected error occurred while updating the role.");
+    }
 
 }
 
@@ -8208,11 +7311,8 @@ async function updateWebsiteRoleColor(id, color) {
             return;
         }
 
-        const role = websiteRoleDatabase.find(item => item.id === id);
+        const role = websiteRoleDatabase.find(item => String(item.id) === String(id));
         if (role) role.color = color;
-
-        displayStaff();
-        displayEditorStaff();
 
     } catch (error) {
         console.error(error);
@@ -8222,48 +7322,40 @@ async function updateWebsiteRoleColor(id, color) {
 }
 
 
-async function updateWebsiteRoleIcon(id) {
+async function deleteWebsiteRole(id) {
 
-    const role = websiteRoleDatabase.find(item => item.id === id);
+    const role = websiteRoleDatabase.find(item => String(item.id) === String(id));
     if (!role) return;
 
-    const iconInput = prompt(
-        "Enter an icon image URL for this role (leave blank to remove):",
-        role.iconUrl || ""
-    );
-
-    if (iconInput === null) return;
-
-    const cleanIcon = iconInput.trim() ? getSafeLogoUrl(iconInput.trim()) : "";
-
-    if (iconInput.trim() && !cleanIcon) {
-        alert("That doesn't look like a valid image URL.");
-        return;
-    }
+    const confirmed = confirm(`Delete the "${role.label}" role? This removes it from any staff members who have it.`);
+    if (!confirmed) return;
 
     try {
 
         const { error } =
             await supabaseClient
                 .from("website_roles")
-                .update({ icon_url: cleanIcon || null })
+                .delete()
                 .eq("id", id);
 
         if (error) {
-            alert("Unable to update icon:\n\n" + error.message);
+            alert("Unable to delete role:\n\n" + error.message);
             return;
         }
 
-        role.iconUrl = cleanIcon;
+        websiteRoleDatabase = websiteRoleDatabase.filter(item => String(item.id) !== String(id));
+
+        await loadStaffWebsiteRolesDatabase();
 
         displayWebsiteRoleManagement();
 
     } catch (error) {
         console.error(error);
-        alert("An unexpected error occurred while updating the icon.");
+        alert("An unexpected error occurred while deleting the role.");
     }
 
 }
 
+
 setupEventListeners();
-setupCreateEditorForm();
+setupEditorManagementForm();
