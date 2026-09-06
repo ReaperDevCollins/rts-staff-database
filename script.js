@@ -313,6 +313,9 @@ async function loadStaffDatabase() {
                     subDepartmentEndDate:
                         member.sub_department_end_date || "",
 
+                    notes:
+                        member.notes || "",
+
                     startDate:
                         member.start_date || "",
 
@@ -1837,6 +1840,10 @@ function openStaffForm(
             member.subDepartmentEndDate || "";
 
 
+        const notesField = document.getElementById("staffNotes");
+        if (notesField) notesField.value = member.notes || "";
+
+
         document.getElementById(
             "staffStartDate"
         ).value =
@@ -1988,6 +1995,13 @@ function setupStaffForm() {
                 document.getElementById(
                     "staffSubDepartmentEndDate"
                 )?.value
+                || "";
+
+            const notes =
+                document.getElementById(
+                    "staffNotes"
+                )?.value
+                ?.trim()
                 || "";
 
             const avatarUrl =
@@ -2159,6 +2173,9 @@ function setupStaffForm() {
                                 sub_department_end_date:
                                     subDepartmentEndDate || null,
 
+                                notes:
+                                    notes || null,
+
                                 start_date:
                                     startDate,
 
@@ -2236,6 +2253,9 @@ function setupStaffForm() {
                                 subDepartmentEndDate:
                                     data.sub_department_end_date || "",
 
+                                notes:
+                                    data.notes || "",
+
                                 startDate:
                                     data.start_date || "",
 
@@ -2291,6 +2311,9 @@ function setupStaffForm() {
 
                                 sub_department_end_date:
                                     subDepartmentEndDate || null,
+
+                                notes:
+                                    notes || null,
 
                                 start_date:
                                     startDate,
@@ -2351,6 +2374,9 @@ function setupStaffForm() {
 
                             subDepartmentEndDate:
                                 data.sub_department_end_date || "",
+
+                            notes:
+                                data.notes || "",
 
                             startDate:
                                 data.start_date || "",
@@ -6843,6 +6869,22 @@ function openEmployeeFile(staffId) {
                             </p>
                         </div>
                     `).join("")}
+                `
+                : ""
+        }
+
+        ${
+            member.notes && member.notes.trim()
+                ? `
+                    <div style="border-top:2px solid #b58a28; margin: 20px 0 15px;"></div>
+
+                    <p style="font-weight:800; font-size:13px; margin-bottom:10px; color:#c7cad2; text-transform:uppercase; letter-spacing:0.5px;">
+                        Notes
+                    </p>
+
+                    <p style="color:#858b98; font-size:13px; line-height:1.6; white-space:pre-wrap;">
+                        ${escapeHTML(member.notes)}
+                    </p>
                 `
                 : ""
         }
